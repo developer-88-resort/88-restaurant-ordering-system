@@ -103,12 +103,15 @@
                                     <form action="{{ route('spaces.update-status', $space) }}" method="POST" class="mt-3">
                                         @csrf
                                         @method('PATCH')
-                                        <select name="status" onchange="this.form.submit()"
-                                                class="w-full text-xs font-semibold rounded-full px-3 py-1.5 border-0 focus:ring-2 focus:ring-[#8A3330] {{ $space->status->badgeClasses() }}">
-                                            @foreach (\App\Enums\SpaceStatus::cases() as $status)
-                                                <option value="{{ $status->value }}" @selected($space->status === $status)>{{ $status->label() }}</option>
-                                            @endforeach
-                                        </select>
+                                        <div class="relative w-full">
+                                            <div class="absolute inset-y-0 left-0 w-full -translate-x-2 rounded-full {{ $space->status->capsuleAccentClass() }}"></div>
+                                            <select name="status" onchange="this.form.submit()"
+                                                    class="relative w-full text-xs font-bold text-black text-center rounded-full px-3 py-1.5 bg-white border-2 border-gray-900 focus:ring-2 focus:ring-[#8A3330] focus:outline-none">
+                                                @foreach (\App\Enums\SpaceStatus::cases() as $status)
+                                                    <option value="{{ $status->value }}" @selected($space->status === $status)>{{ $status->label() }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </form>
                                     <div class="mt-3 pt-3 border-t border-[#E5DDD0] flex items-center justify-between text-xs">
                                         <a href="{{ route('spaces.edit', $space) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>

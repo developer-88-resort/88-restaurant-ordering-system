@@ -47,4 +47,19 @@ enum SpaceStatus: string
             self::Disabled => 'border-l-blue-500 text-blue-700',
         };
     }
+
+    /**
+     * Solid color for the accent capsule peeking behind the white status
+     * pill on the Spaces page.
+     */
+    public function capsuleAccentClass(): string
+    {
+        return match ($this) {
+            self::Available => 'bg-green-500',
+            self::Occupied => 'bg-red-500',
+            self::Reserved => 'bg-orange-500',
+            self::Maintenance => 'bg-yellow-500',
+            self::Disabled => 'bg-blue-500',
+        };
+    }
 }
