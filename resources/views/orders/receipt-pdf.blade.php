@@ -44,7 +44,7 @@
         <tr><td class="label">Receipt No.</td><td class="right">{{ $order->receipt_number }}</td></tr>
         <tr><td class="label">Order No.</td><td class="right">{{ $order->orderNumber() }}</td></tr>
         <tr><td class="label">Date</td><td class="right">{{ $order->paid_at->format('M d, Y g:i A') }}</td></tr>
-        <tr><td class="label">Table</td><td class="right">{{ $order->table->table_number }}</td></tr>
+        <tr><td class="label">Location</td><td class="right">{{ $order->locationLabel() }}</td></tr>
         <tr><td class="label">Cashier</td><td class="right">{{ $order->creator->name ?? 'Unknown' }}</td></tr>
     </table>
 

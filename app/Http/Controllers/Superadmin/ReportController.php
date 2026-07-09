@@ -77,6 +77,19 @@ class ReportController extends Controller
             ->orderBy('sale_date')
             ->get();
 
+        $areaSales = DB::table('orders')
+            ->join('areas', 'areas.id', '=', 'orders.area_id')
+            ->where('orders.payment_status', PaymentStatus::Paid->value)
+            ->whereBetween('orders.created_at', [$start, $end])
+            ->select(
+                'areas.name as area_name',
+                DB::raw('COUNT(*) as order_count'),
+                DB::raw('SUM(orders.total_amount) as total_revenue'),
+            )
+            ->groupBy('areas.name')
+            ->orderByDesc('total_revenue')
+            ->get();
+
         return view('superadmin.reports.index', [
             'range' => $range,
             'rangeLabel' => $rangeLabel,
@@ -87,6 +100,7 @@ class ReportController extends Controller
             'bestSellers' => $bestSellers,
             'categorySales' => $categorySales,
             'dailySales' => $dailySales,
+            'areaSales' => $areaSales,
         ]);
     }
 }

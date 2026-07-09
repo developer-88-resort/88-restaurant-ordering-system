@@ -61,8 +61,8 @@
         <div class="w-full lg:w-80 shrink-0 space-y-6">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-6 space-y-4">
                 <div>
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-[#8A7B9E]">{{ __('Table') }}</p>
-                    <p class="text-sm font-medium text-gray-900">{{ $order->table->table_number }}</p>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-[#8A7B9E]">{{ __('Location') }}</p>
+                    <p class="text-sm font-medium text-gray-900">{{ $order->locationLabel() }}</p>
                 </div>
 
                 <div>

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreTableRequest extends FormRequest
+class StoreAreaRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,7 +17,8 @@ class StoreTableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'table_number' => ['required', 'string', 'max:50', 'unique:tables,table_number'],
+            'name' => ['required', 'string', 'max:100', 'unique:areas,name'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

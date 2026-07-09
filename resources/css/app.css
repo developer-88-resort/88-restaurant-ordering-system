@@ -6,6 +6,32 @@
     display: none !important;
 }
 
+/* Custom scrollbar: thin, no classic up/down arrow buttons (Windows Chrome/Edge default). */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: #D9CCBA transparent;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #D9CCBA;
+    border-radius: 9999px;
+}
+
+::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
 @keyframes fade-slide-up {
     from {
         opacity: 0;

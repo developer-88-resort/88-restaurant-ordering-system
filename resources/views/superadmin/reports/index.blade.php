@@ -64,7 +64,7 @@
         @endif
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Best sellers --}}
         <div class="bg-white border border-[#E5DDD0] rounded-xl overflow-hidden animate-fade-slide-up [animation-delay:400ms]">
             <div class="px-6 py-4 border-b border-[#E5DDD0]">
@@ -117,6 +117,37 @@
                                 <tr>
                                     <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $category->category_name }}</td>
                                     <td class="px-6 py-3 text-sm font-semibold text-gray-900 text-right">₱{{ number_format($category->total_revenue, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+
+        {{-- Sales by area --}}
+        <div class="bg-white border border-[#E5DDD0] rounded-xl overflow-hidden animate-fade-slide-up [animation-delay:560ms]">
+            <div class="px-6 py-4 border-b border-[#E5DDD0]">
+                <h3 class="font-semibold text-gray-900">{{ __('Sales by Area') }}</h3>
+            </div>
+            @if ($areaSales->isEmpty())
+                <p class="text-sm text-gray-400 px-6 py-8 text-center">{{ __('No area sales for this period.') }}</p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-[#E5DDD0]">
+                        <thead class="bg-[#FAF6EE]">
+                            <tr>
+                                <th class="px-6 py-2.5 text-left text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Area') }}</th>
+                                <th class="px-6 py-2.5 text-right text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Orders') }}</th>
+                                <th class="px-6 py-2.5 text-right text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Revenue') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#E5DDD0]">
+                            @foreach ($areaSales as $area)
+                                <tr>
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $area->area_name }}</td>
+                                    <td class="px-6 py-3 text-sm text-gray-600 text-right">{{ $area->order_count }}</td>
+                                    <td class="px-6 py-3 text-sm font-semibold text-gray-900 text-right">₱{{ number_format($area->total_revenue, 2) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Order extends Model
 {
     protected $fillable = [
+        'order_type',
         'table_id',
+        'area_id',
+        'space_category_id',
+        'space_id',
+        'space_session_id',
         'created_by',
         'status',
         'payment_status',
@@ -30,6 +36,7 @@ class Order extends Model
     protected function casts(): array
     {
         return [
+            'order_type' => OrderType::class,
             'status' => OrderStatus::class,
             'payment_status' => PaymentStatus::class,
             'total_amount' => 'decimal:2',
@@ -43,6 +50,39 @@ class Order extends Model
     public function table(): BelongsTo
     {
         return $this->belongsTo(RestaurantTable::class, 'table_id');
+    }
+
+    public function area(): BelongsTo
+    {
+        return $this->belongsTo(Area::class);
+    }
+
+    public function spaceCategory(): BelongsTo
+    {
+        return $this->belongsTo(SpaceCategory::class, 'space_category_id');
+    }
+
+    public function space(): BelongsTo
+    {
+        return $this->belongsTo(Space::class);
+    }
+
+    public function spaceSession(): BelongsTo
+    {
+        return $this->belongsTo(SpaceSession::class);
+    }
+
+    public function locationLabel(): string
+    {
+        if ($this->order_type === OrderType::Takeout) {
+            return 'Take-out';
+        }
+
+        if (! $this->area || ! $this->spaceCategory) {
+            return $this->table->table_number ?? 'Unknown';
+        }
+
+        return $this->area->name.' - '.($this->space->name ?? $this->spaceCategory->name);
     }
 
     public function creator(): BelongsTo

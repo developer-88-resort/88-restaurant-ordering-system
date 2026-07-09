@@ -2,12 +2,14 @@
 
 namespace App\Observers;
 
+use App\Models\Area;
 use App\Models\AuditLog;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Order;
-use App\Models\RestaurantTable;
 use App\Models\Setting;
+use App\Models\Space;
+use App\Models\SpaceCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -58,7 +60,9 @@ class AuditObserver
         return match (get_class($model)) {
             MenuCategory::class => 'Menu Category',
             MenuItem::class => 'Menu Item',
-            RestaurantTable::class => 'Table',
+            Area::class => 'Area',
+            SpaceCategory::class => 'Space Category',
+            Space::class => 'Space',
             User::class => 'User',
             Setting::class => 'Settings',
             Order::class => 'Order',
@@ -72,7 +76,7 @@ class AuditObserver
             return $model->orderNumber();
         }
 
-        foreach (['name', 'table_number', 'resort_name'] as $field) {
+        foreach (['name', 'resort_name'] as $field) {
             if (! empty($model->{$field})) {
                 return (string) $model->{$field};
             }

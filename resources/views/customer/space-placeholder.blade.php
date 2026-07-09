@@ -12,8 +12,8 @@
         </div>
 
         <div class="bg-white border border-[#D9CCBA] rounded-xl p-8">
-            <p class="text-sm text-[#8A7B6D] uppercase tracking-wide">{{ __('Table') }}</p>
-            <p class="text-3xl font-bold text-[#8A3330] mt-1">{{ $table->table_number }}</p>
+            <p class="text-sm text-[#8A7B6D] uppercase tracking-wide">{{ $space->area->name }}</p>
+            <p class="text-3xl font-bold text-[#8A3330] mt-1">{{ $space->name }}</p>
 
             <p class="mt-6 text-gray-700">
                 {{ __('Menu ordering will be available here soon.') }}

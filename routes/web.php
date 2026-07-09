@@ -1,18 +1,20 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\MenuCategoryController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SpaceCategoryController;
+use App\Http\Controllers\SpaceController;
 use App\Http\Controllers\Superadmin\AuditLogController as SuperadminAuditLogController;
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
 use App\Http\Controllers\Superadmin\ReportController as SuperadminReportController;
 use App\Http\Controllers\Superadmin\SettingController as SuperadminSettingController;
 use App\Http\Controllers\Superadmin\UserController as SuperadminUserController;
-use App\Http\Controllers\TableController;
-use App\Models\RestaurantTable;
+use App\Models\Space;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -49,11 +51,25 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::resource('menu-items', MenuItemController::class)->except('show');
     Route::patch('menu-items/{menuItem}/toggle-availability', [MenuItemController::class, 'toggleAvailability'])
         ->name('menu-items.toggle-availability');
-    Route::resource('tables', TableController::class)->except('show');
-    Route::post('tables-bulk', [TableController::class, 'storeBulk'])->name('tables.store-bulk');
-    Route::patch('tables/{table}/status', [TableController::class, 'updateStatus'])->name('tables.update-status');
-    Route::get('tables/{table}/qr-code', [TableController::class, 'qrCode'])->name('tables.qr-code');
-    Route::get('tables/{table}/print', [TableController::class, 'print'])->name('tables.print');
+    Route::get('spaces', [SpaceController::class, 'index'])->name('spaces.index');
+    Route::get('spaces/create', [SpaceController::class, 'create'])->name('spaces.create');
+    Route::post('spaces', [SpaceController::class, 'store'])->name('spaces.store');
+    Route::post('spaces-bulk', [SpaceController::class, 'storeBulk'])->name('spaces.store-bulk');
+    Route::get('spaces/{space}/edit', [SpaceController::class, 'edit'])->name('spaces.edit');
+    Route::put('spaces/{space}', [SpaceController::class, 'update'])->name('spaces.update');
+    Route::delete('spaces/{space}', [SpaceController::class, 'destroy'])->name('spaces.destroy');
+    Route::patch('spaces/{space}/status', [SpaceController::class, 'updateStatus'])->name('spaces.update-status');
+    Route::get('spaces/{space}/qr-code', [SpaceController::class, 'qrCode'])->name('spaces.qr-code');
+    Route::get('spaces/{space}/print', [SpaceController::class, 'print'])->name('spaces.print');
+
+    Route::resource('areas', AreaController::class)->except('show');
+
+    Route::get('space-categories/create/{area}', [SpaceCategoryController::class, 'create'])->name('space-categories.create');
+    Route::post('space-categories', [SpaceCategoryController::class, 'store'])->name('space-categories.store');
+    Route::get('space-categories/{spaceCategory}/edit', [SpaceCategoryController::class, 'edit'])->name('space-categories.edit');
+    Route::put('space-categories/{spaceCategory}', [SpaceCategoryController::class, 'update'])->name('space-categories.update');
+    Route::delete('space-categories/{spaceCategory}', [SpaceCategoryController::class, 'destroy'])->name('space-categories.destroy');
+    Route::patch('space-categories/{spaceCategory}/sessions/{spaceSession}/end', [SpaceCategoryController::class, 'endSession'])->name('space-categories.sessions.end');
 
     Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
@@ -65,8 +81,8 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::get('/kitchen', [KitchenController::class, 'index'])->name('kitchen.index');
 });
 
-Route::get('/order/{table:qr_token}', function (RestaurantTable $table) {
-    return view('customer.table-placeholder', ['table' => $table]);
-})->name('customer.tables.show');
+Route::get('/order/{space:qr_token}', function (Space $space) {
+    return view('customer.space-placeholder', ['space' => $space]);
+})->name('customer.spaces.show');
 
 require __DIR__.'/auth.php';

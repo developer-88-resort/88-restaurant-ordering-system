@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\TableStatus;
+use App\Enums\SpaceStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
-class UpdateTableRequest extends FormRequest
+class UpdateSpaceRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,8 +19,10 @@ class UpdateTableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'table_number' => ['required', 'string', 'max:50', 'unique:tables,table_number,'.$this->route('table')->id],
-            'status' => ['required', new Enum(TableStatus::class)],
+            'name' => ['required', 'string', 'max:100'],
+            'status' => ['required', new Enum(SpaceStatus::class)],
+            'shared_space_ids' => ['nullable', 'array'],
+            'shared_space_ids.*' => ['integer', 'exists:spaces,id'],
         ];
     }
 }

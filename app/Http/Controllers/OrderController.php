@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Enums\PaymentStatus;
-use App\Enums\TableStatus;
+use App\Enums\SpaceStatus;
 use App\Events\KitchenUpdated;
 use App\Http\Requests\StoreOrderRequest;
+use App\Models\Area;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Order;
-use App\Models\RestaurantTable;
+use App\Models\Space;
+use App\Models\SpaceCategory;
+use App\Models\SpaceSession;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +27,7 @@ class OrderController extends Controller
 {
     public function index(Request $request): View
     {
-        $orders = Order::with(['table', 'creator'])
+        $orders = Order::with(['area', 'spaceCategory', 'space', 'creator'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->latest()
             ->paginate(15)
@@ -37,7 +41,7 @@ class OrderController extends Controller
 
     public function create(): View
     {
-        $categories = MenuCategory::where('is_active', true)
+        $menuCategories = MenuCategory::where('is_active', true)
             ->with(['menuItems' => fn ($query) => $query->where('is_available', true)->orderBy('name')])
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -45,9 +49,27 @@ class OrderController extends Controller
             ->filter(fn ($category) => $category->menuItems->isNotEmpty())
             ->values();
 
+        $areas = Area::where('is_active', true)
+            ->with(['categories' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $areas->flatMap(fn (Area $area) => $area->categories)->each(function ($category) {
+            if ($category->is_free) {
+                $category->setAttribute('occupied_count', $category->activeOccupancyCount());
+                $category->setAttribute('capacity_count', $category->capacityCount());
+            } else {
+                $category->setRelation(
+                    'spaces',
+                    $category->spaces()->orderBy('sort_order')->orderBy('name')->get()
+                );
+            }
+        });
+
         return view('orders.create', [
-            'tables' => RestaurantTable::orderBy('table_number')->get(),
-            'categories' => $categories,
+            'areas' => $areas,
+            'categories' => $menuCategories,
         ]);
     }
 
@@ -69,8 +91,38 @@ class OrderController extends Controller
                 ];
             });
 
+            $isTakeout = $request->string('order_type')->toString() === OrderType::Takeout->value;
+            $space = null;
+            $spaceId = null;
+            $spaceSessionId = null;
+
+            if (! $isTakeout) {
+                $category = SpaceCategory::findOrFail($request->integer('space_category_id'));
+                $spaceId = $request->input('space_id') ?: null;
+                $space = $spaceId ? Space::findOrFail($spaceId) : null;
+
+                if (! $space && $category->is_free && $category->usesSpacePool()) {
+                    $space = $category->spaces()
+                        ->where('status', SpaceStatus::Available)
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->first();
+                    $spaceId = $space?->id;
+                }
+
+                if (! $space) {
+                    $spaceSessionId = SpaceSession::create([
+                        'category_id' => $request->integer('space_category_id'),
+                    ])->id;
+                }
+            }
+
             $order = Order::create([
-                'table_id' => $request->integer('table_id'),
+                'order_type' => $isTakeout ? OrderType::Takeout : OrderType::DineIn,
+                'area_id' => $isTakeout ? null : $request->integer('area_id'),
+                'space_category_id' => $isTakeout ? null : $request->integer('space_category_id'),
+                'space_id' => $spaceId,
+                'space_session_id' => $spaceSessionId,
                 'created_by' => auth()->id(),
                 'status' => OrderStatus::Pending,
                 'payment_status' => PaymentStatus::Unpaid,
@@ -80,8 +132,8 @@ class OrderController extends Controller
 
             $order->items()->createMany($lines->all());
 
-            if ($order->table->status === TableStatus::Available) {
-                $order->table->update(['status' => TableStatus::Occupied]);
+            if ($space && $space->status === SpaceStatus::Available) {
+                $space->setStatusWithSharedTables(SpaceStatus::Occupied);
             }
 
             return $order;
@@ -95,7 +147,7 @@ class OrderController extends Controller
 
     public function show(Order $order): View
     {
-        $order->load(['table', 'creator', 'items']);
+        $order->load(['area', 'spaceCategory', 'space', 'creator', 'items']);
 
         return view('orders.show', ['order' => $order]);
     }
@@ -113,9 +165,31 @@ class OrderController extends Controller
 
         $order->update(['status' => $request->string('status')->toString()]);
 
+        if ($order->status->isFinal()) {
+            $this->releaseOrderLocation($order);
+        }
+
         broadcast(new KitchenUpdated());
 
         return redirect()->back()->with('status', "Order {$order->orderNumber()} is now {$order->status->label()}.");
+    }
+
+    /**
+     * Free up the space (or pooled session) an order was using once the
+     * order reaches a final state (Completed/Cancelled), so it's ready for
+     * the next customer without staff having to release it by hand.
+     */
+    protected function releaseOrderLocation(Order $order): void
+    {
+        if ($order->space && $order->space->status !== SpaceStatus::Available) {
+            $order->space->setStatusWithSharedTables(SpaceStatus::Available);
+
+            return;
+        }
+
+        if ($order->spaceSession && $order->spaceSession->status === 'active') {
+            $order->spaceSession->update(['status' => 'completed', 'ended_at' => now()]);
+        }
     }
 
     public function markAsPaid(Request $request, Order $order): RedirectResponse
@@ -163,7 +237,7 @@ class OrderController extends Controller
     {
         abort_unless($order->receipt_number, 404);
 
-        $order->load(['table', 'creator', 'items']);
+        $order->load(['area', 'spaceCategory', 'space', 'creator', 'items']);
 
         return view('orders.receipt', ['order' => $order]);
     }
@@ -172,7 +246,7 @@ class OrderController extends Controller
     {
         abort_unless($order->receipt_number, 404);
 
-        $order->load(['table', 'creator', 'items']);
+        $order->load(['area', 'spaceCategory', 'space', 'creator', 'items']);
 
         $pdf = Pdf::loadView('orders.receipt-pdf', ['order' => $order])->setPaper('a5', 'portrait');
 

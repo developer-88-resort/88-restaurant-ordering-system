@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ __('Print QR') }} — {{ $table->table_number }}</title>
+        <title>{{ __('Print QR') }} — {{ $space->name }}</title>
         <style>
             * { box-sizing: border-box; }
             body {
@@ -64,7 +64,7 @@
                 margin: 24px auto;
                 display: block;
             }
-            .card .table-number {
+            .card .space-name {
                 font-size: 24px;
                 font-weight: 700;
                 color: #8A3330;
@@ -82,14 +82,14 @@
     <body>
         <div class="toolbar">
             <button onclick="window.print()">{{ __('Print') }}</button>
-            <a href="{{ route('tables.index') }}" class="secondary">{{ __('Back to Tables') }}</a>
+            <a href="{{ route('spaces.index', ['area' => $space->area_id]) }}" class="secondary">{{ __('Back') }}</a>
         </div>
 
         <div class="card">
             <div class="resort-name">88 Hot Spring Resort</div>
             <div class="instruction">{{ __('Scan to view menu & order') }}</div>
-            <img src="{{ route('tables.qr-code', $table) }}" alt="{{ __('QR code for') }} {{ $table->table_number }}">
-            <div class="table-number">{{ $table->table_number }}</div>
+            <img src="{{ route('spaces.qr-code', $space) }}" alt="{{ __('QR code for') }} {{ $space->name }}">
+            <div class="space-name">{{ $space->name }}</div>
         </div>
     </body>
 </html>

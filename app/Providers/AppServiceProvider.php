@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Area;
 use App\Models\AuditLog;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Order;
-use App\Models\RestaurantTable;
 use App\Models\Setting;
+use App\Models\Space;
+use App\Models\SpaceCategory;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use Illuminate\Auth\Events\Failed;
@@ -38,7 +40,9 @@ class AppServiceProvider extends ServiceProvider
 
         MenuCategory::observe(AuditObserver::class);
         MenuItem::observe(AuditObserver::class);
-        RestaurantTable::observe(AuditObserver::class);
+        Area::observe(AuditObserver::class);
+        SpaceCategory::observe(AuditObserver::class);
+        Space::observe(AuditObserver::class);
         User::observe(AuditObserver::class);
         Setting::observe(AuditObserver::class);
         Order::observe(AuditObserver::class);

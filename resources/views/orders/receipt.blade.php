@@ -53,7 +53,7 @@
                 <div class="flex justify-between"><span class="text-gray-500">{{ __('Receipt No.') }}</span><span>{{ $order->receipt_number }}</span></div>
                 <div class="flex justify-between"><span class="text-gray-500">{{ __('Order No.') }}</span><span>{{ $order->orderNumber() }}</span></div>
                 <div class="flex justify-between"><span class="text-gray-500">{{ __('Date') }}</span><span>{{ $order->paid_at->format('M d, Y g:i A') }}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">{{ __('Table') }}</span><span>{{ $order->table->table_number }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('Location') }}</span><span>{{ $order->locationLabel() }}</span></div>
                 <div class="flex justify-between"><span class="text-gray-500">{{ __('Cashier') }}</span><span>{{ $order->creator->name ?? __('Unknown') }}</span></div>
             </div>
 

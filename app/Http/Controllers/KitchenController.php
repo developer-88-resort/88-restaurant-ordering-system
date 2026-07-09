@@ -10,7 +10,7 @@ class KitchenController extends Controller
 {
     public function index(): View
     {
-        $orders = Order::with(['table', 'items'])
+        $orders = Order::with(['area', 'spaceCategory', 'space', 'items'])
             ->whereIn('status', [OrderStatus::Pending, OrderStatus::Preparing, OrderStatus::Ready])
             ->oldest()
             ->get()

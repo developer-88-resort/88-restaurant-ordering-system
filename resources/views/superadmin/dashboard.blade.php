@@ -22,9 +22,9 @@
             <p class="mt-1 text-xs text-gray-400">{{ __('Awaiting kitchen') }}</p>
         </div>
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-5 animate-fade-slide-up [animation-delay:240ms]">
-            <div class="font-mono text-[11px] uppercase tracking-wider text-[#8A7B9E]">{{ __('Table Occupancy') }}</div>
-            <div class="mt-2 text-2xl font-bold text-gray-900">{{ $occupiedTables }} <span class="text-base font-normal text-gray-400">/ {{ $totalTables }}</span></div>
-            <p class="mt-1 text-xs text-gray-400">{{ __('Tables occupied') }}</p>
+            <div class="font-mono text-[11px] uppercase tracking-wider text-[#8A7B9E]">{{ __('Space Occupancy') }}</div>
+            <div class="mt-2 text-2xl font-bold text-gray-900">{{ $occupiedSpaces }} <span class="text-base font-normal text-gray-400">/ {{ $totalSpaces }}</span></div>
+            <p class="mt-1 text-xs text-gray-400">{{ __('Spaces occupied') }}</p>
         </div>
     </div>
 
@@ -37,8 +37,16 @@
         </div>
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-5 animate-fade-slide-up [animation-delay:400ms]">
             <div class="font-mono text-[11px] uppercase tracking-wider text-[#8A7B9E]">{{ __('Popular This Week') }}</div>
-            <div class="mt-2 text-lg font-bold text-gray-900 truncate">{{ $popularThisWeek->item_name ?? '—' }}</div>
-            <p class="mt-1 text-xs text-gray-400">{{ $popularThisWeek ? __(':qty sold', ['qty' => $popularThisWeek->total_qty]) : __('No sales yet') }}</p>
+            <div class="mt-2 text-lg font-bold text-gray-900 truncate">
+                @if ($popularThisWeek)
+                    {{ $popularThisWeek->category_name ?? __('Uncategorized') }} — {{ $popularThisWeek->item_name }}
+                @else
+                    —
+                @endif
+            </div>
+            <p class="mt-1 text-xs text-gray-400">
+                {{ $popularThisWeek ? __(':qty sold', ['qty' => $popularThisWeek->total_qty]) : __('No sales yet') }}
+            </p>
         </div>
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-5 animate-fade-slide-up [animation-delay:480ms]">
             <div class="font-mono text-[11px] uppercase tracking-wider text-[#8A7B9E]">{{ __('Admin Accounts') }}</div>
@@ -66,7 +74,7 @@
                     <thead class="bg-[#FAF6EE]">
                         <tr>
                             <th class="px-6 py-2.5 text-left text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Order') }}</th>
-                            <th class="px-6 py-2.5 text-left text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Table') }}</th>
+                            <th class="px-6 py-2.5 text-left text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Location') }}</th>
                             <th class="px-6 py-2.5 text-left text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Status') }}</th>
                             <th class="px-6 py-2.5 text-right text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Total') }}</th>
                             <th class="px-6 py-2.5 text-right text-xs font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ __('Actions') }}</th>
@@ -76,7 +84,7 @@
                         @foreach ($recentOrders as $order)
                             <tr class="hover:bg-[#FAF6EE]">
                                 <td class="px-6 py-3 text-sm font-mono font-medium text-gray-900">{{ $order->orderNumber() }}</td>
-                                <td class="px-6 py-3 text-sm text-gray-600">{{ $order->table->table_number }}</td>
+                                <td class="px-6 py-3 text-sm text-gray-600">{{ $order->locationLabel() }}</td>
                                 <td class="px-6 py-3">
                                     <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full {{ $order->status->badgeClasses() }}">
                                         {{ $order->status->label() }}
@@ -103,7 +111,7 @@
                             </span>
                         </div>
                         <div class="mt-1 flex items-center justify-between">
-                            <span class="text-xs text-gray-500">{{ $order->table->table_number }}</span>
+                            <span class="text-xs text-gray-500">{{ $order->locationLabel() }}</span>
                             <span class="text-sm font-semibold text-gray-900">₱{{ number_format($order->total_amount, 2) }}</span>
                         </div>
                     </a>

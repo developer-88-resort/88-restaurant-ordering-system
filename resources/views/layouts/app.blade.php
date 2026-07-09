@@ -99,8 +99,8 @@
                             {{ __('Menu Management') }}
                         </x-sidebar-link>
 
-                        <x-sidebar-link :href="route('tables.index')" :active="request()->routeIs('tables.*')">
-                            {{ __('Tables') }}
+                        <x-sidebar-link :href="route('spaces.index')" :active="request()->routeIs('spaces.*') || request()->routeIs('areas.*') || request()->routeIs('space-categories.*')">
+                            {{ __('Spaces') }}
                         </x-sidebar-link>
                         <x-sidebar-link :href="route('kitchen.index')" :active="request()->routeIs('kitchen.*')">
                             {{ __('Kitchen') }}

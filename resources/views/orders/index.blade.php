@@ -96,7 +96,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v4H4V6z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M7 10v8M17 10v8" />
                                         </svg>
-                                        {{ $order->table->table_number }}
+                                        {{ $order->locationLabel() }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -145,7 +145,7 @@
             @foreach ($orders as $order)
                 <a href="{{ route('orders.show', $order) }}" class="block bg-white border border-[#E5DDD0] rounded-2xl shadow-sm p-4">
                     <div class="flex items-center justify-between gap-3">
-                        <p class="font-semibold text-gray-900 font-mono">{{ $order->orderNumber() }} <span class="font-sans font-normal text-gray-500">&middot; {{ $order->table->table_number }}</span></p>
+                        <p class="font-semibold text-gray-900 font-mono">{{ $order->orderNumber() }} <span class="font-sans font-normal text-gray-500">&middot; {{ $order->locationLabel() }}</span></p>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full shrink-0 {{ $order->status->badgeClasses() }}">
                             <span class="h-1.5 w-1.5 rounded-full {{ $order->status->dotClasses() }}"></span>
                             {{ $order->status->label() }}
