@@ -17,6 +17,7 @@
         <form method="POST" action="{{ route('orders.store') }}"
               x-data="{
                   cart: [],
+                  eachLabel: @js(__('each')),
                   orderType: 'dine_in',
                   areaId: null,
                   categoryId: null,
@@ -224,7 +225,7 @@
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="min-w-0">
                                             <p class="text-sm font-medium text-gray-900 truncate" x-text="line.name"></p>
-                                            <p class="text-xs text-gray-500" x-text="'₱' + line.price.toFixed(2) + ' each'"></p>
+                                            <p class="text-xs text-gray-500" x-text="'₱' + line.price.toFixed(2) + ' ' + eachLabel"></p>
                                         </div>
                                         <div class="flex items-center gap-2 shrink-0">
                                             <button type="button" @click="decrement(line.id)" class="h-7 w-7 rounded-full border border-[#D9CCBA] text-gray-600 hover:bg-gray-50">−</button>

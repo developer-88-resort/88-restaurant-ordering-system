@@ -2,22 +2,14 @@
 
 namespace App\Providers;
 
-use App\Models\Area;
-use App\Models\AuditLog;
-use App\Models\MenuCategory;
-use App\Models\MenuItem;
-use App\Models\Order;
-use App\Models\Setting;
-use App\Models\Space;
-use App\Models\SpaceCategory;
-use App\Models\User;
-use App\Observers\AuditObserver;
+use App\Events\AuditLogCreated;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,23 +30,16 @@ class AppServiceProvider extends ServiceProvider
             URL::forceRootUrl(config('app.url'));
         }
 
-        MenuCategory::observe(AuditObserver::class);
-        MenuItem::observe(AuditObserver::class);
-        Area::observe(AuditObserver::class);
-        SpaceCategory::observe(AuditObserver::class);
-        Space::observe(AuditObserver::class);
-        User::observe(AuditObserver::class);
-        Setting::observe(AuditObserver::class);
-        Order::observe(AuditObserver::class);
+        // Model changes (Area, MenuCategory, MenuItem, Order, Setting, Space,
+        // SpaceCategory, User) are audit-logged via the LogsAuditActivity
+        // trait on each model, not an observer — see app/Concerns/LogsAuditActivity.php.
 
         Event::listen(function (Login $event) {
-            AuditLog::create([
-                'user_id' => $event->user->id,
-                'action' => 'login',
-                'auditable_type' => User::class,
-                'auditable_id' => $event->user->id,
-                'description' => "{$event->user->name} logged in.",
-            ]);
+            activity('audit')
+                ->causedBy($event->user)
+                ->performedOn($event->user)
+                ->event('login')
+                ->log("{$event->user->name} logged in.");
         });
 
         Event::listen(function (Logout $event) {
@@ -62,23 +47,25 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            AuditLog::create([
-                'user_id' => $event->user->id,
-                'action' => 'logout',
-                'auditable_type' => User::class,
-                'auditable_id' => $event->user->id,
-                'description' => "{$event->user->name} logged out.",
-            ]);
+            activity('audit')
+                ->causedBy($event->user)
+                ->performedOn($event->user)
+                ->event('logout')
+                ->log("{$event->user->name} logged out.");
         });
 
         Event::listen(function (Failed $event) {
-            AuditLog::create([
-                'user_id' => $event->user?->id,
-                'action' => 'failed_login',
-                'auditable_type' => User::class,
-                'auditable_id' => $event->user?->id,
-                'description' => 'Failed login attempt for: '.($event->credentials['email'] ?? 'unknown'),
-            ]);
+            activity('audit')
+                ->causedBy($event->user)
+                ->event('failed_login')
+                ->log('Failed login attempt for: '.($event->credentials['email'] ?? 'unknown'));
+        });
+
+        // Keep the Audit Logs page's real-time auto-reload working now that
+        // entries are written by spatie/laravel-activitylog instead of the
+        // old AuditLog model (which used to broadcast this itself).
+        Activity::created(function () {
+            broadcast(new AuditLogCreated());
         });
     }
 }

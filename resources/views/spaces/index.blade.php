@@ -75,12 +75,16 @@
             @foreach ($areas as $area)
                 @php $defaultCategory = $area->categories->first(); @endphp
                 <div x-show="activeArea === '{{ $area->id }}'">
+                    @php
+                        $newSpaceUrl = $defaultCategory
+                            ? route('spaces.create', ['category_id' => $defaultCategory->id])
+                            : route('spaces.create', ['area_id' => $area->id]);
+                    @endphp
+
                     <div class="flex items-center justify-end mb-5">
-                        @if ($defaultCategory)
-                            <a href="{{ route('spaces.create', ['category_id' => $defaultCategory->id]) }}" class="text-sm text-[#8A3330] hover:underline font-medium">
-                                + {{ __('New Space') }}
-                            </a>
-                        @endif
+                        <a href="{{ $newSpaceUrl }}" class="text-sm text-[#8A3330] hover:underline font-medium">
+                            + {{ __('New Space') }}
+                        </a>
                     </div>
 
                     @php $allSpaces = $area->categories->flatMap->spaces; @endphp
@@ -89,8 +93,8 @@
                         <x-empty-state
                             :title="__('No spaces yet')"
                             :description="__('Add individual spaces (e.g. Cottage Table 1) so customers can be assigned to them.')"
-                            :actionLabel="$defaultCategory ? __('New Space') : null"
-                            :actionHref="$defaultCategory ? route('spaces.create', ['category_id' => $defaultCategory->id]) : null"
+                            :actionLabel="__('New Space')"
+                            :actionHref="$newSpaceUrl"
                         />
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

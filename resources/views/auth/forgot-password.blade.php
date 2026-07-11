@@ -23,7 +23,7 @@
             </h1>
 
             <p class="text-[#6F6258] text-lg mt-1 font-normal">
-                Reset Password
+                {{ __('Reset Password') }}
             </p>
         </div>
 
@@ -38,7 +38,7 @@
                 id="email"
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder="{{ __('Email') }}"
                 value="{{ old('email') }}"
                 required
                 autofocus

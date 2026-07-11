@@ -105,7 +105,7 @@
                                     <dd class="text-gray-900">₱{{ number_format($order->amount_received, 2) }}</dd>
                                 </div>
                                 <div class="flex justify-between">
-                                    <dt class="text-gray-500">{{ __('Change') }}</dt>
+                                    <dt class="text-gray-500">{{ __('Change Due') }}</dt>
                                     <dd class="text-gray-900">₱{{ number_format($order->change_amount, 2) }}</dd>
                                 </div>
                             </dl>
@@ -219,7 +219,7 @@
                                                 <dd class="font-medium text-gray-900">₱<span x-text="amountReceived.toFixed(2)"></span></dd>
                                             </div>
                                             <div class="flex justify-between pt-2 border-t border-dashed border-[#D9CCBA]">
-                                                <dt class="text-gray-500">{{ __('Change') }}</dt>
+                                                <dt class="text-gray-500">{{ __('Change Due') }}</dt>
                                                 <dd class="font-semibold text-[#8A3330]">₱<span x-text="(amountReceived - {{ $order->total_amount }}).toFixed(2)"></span></dd>
                                             </div>
                                         </dl>

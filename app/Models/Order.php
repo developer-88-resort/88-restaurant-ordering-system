@@ -2,16 +2,22 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsAuditActivity;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
+use Spatie\Activitylog\Contracts\Activity;
 
 class Order extends Model
 {
+    use LogsAuditActivity;
+
     protected $fillable = [
+        'order_number',
         'order_type',
         'table_id',
         'area_id',
@@ -45,6 +51,13 @@ class Order extends Model
             'paid_at' => 'datetime',
             'voided_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            $order->public_token ??= Str::random(32);
+        });
     }
 
     public function table(): BelongsTo
@@ -100,8 +113,45 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    /**
+     * The customer/staff-facing order number for display, e.g.
+     * "#88-0711-001". The stored value (`order_number`) has no "#" — this
+     * is the one place that adds it, so every view stays consistent
+     * automatically.
+     */
     public function orderNumber(): string
     {
-        return 'ORD-'.$this->created_at->format('Ymd').'-'.str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+        return '#'.$this->order_number;
+    }
+
+    protected function auditIdentifier(): string
+    {
+        return $this->order_number;
+    }
+
+    /**
+     * Give status/payment changes a specific, readable description instead
+     * of the generic "Updated Order: ORD-..." — these are the two fields
+     * staff most need to see at a glance in the audit trail.
+     */
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        if ($eventName !== 'updated') {
+            return;
+        }
+
+        $parts = [];
+
+        if ($this->wasChanged('status')) {
+            $parts[] = "status changed to {$this->status->label()}";
+        }
+
+        if ($this->wasChanged('payment_status')) {
+            $parts[] = "payment marked as {$this->payment_status->label()}";
+        }
+
+        if ($parts !== []) {
+            $activity->description = "Order {$this->order_number}: ".implode(' & ', $parts).'.';
+        }
     }
 }

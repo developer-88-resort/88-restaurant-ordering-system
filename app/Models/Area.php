@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsAuditActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Area extends Model
 {
+    use LogsAuditActivity;
+
     protected $fillable = [
         'name',
         'slug',

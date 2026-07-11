@@ -5,10 +5,12 @@
         </h2>
     </x-slot>
 
+    @php $suggestedName = __('Table'); @endphp
+
     <div
         x-data="{
             mode: 'single',
-            prefix: '{{ $category->name }}',
+            prefix: '{{ $suggestedName }}',
             start: 1,
             count: 5,
             get preview() {
@@ -46,7 +48,7 @@
 
                     <div>
                         <x-input-label for="name" :value="__('Space Name')" />
-                        <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="e.g. {{ $category->name }} 1" required autofocus />
+                        <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="{{ __('e.g. :name 1', ['name' => $suggestedName]) }}" required autofocus />
                         <x-input-error :messages="$errors->get('name')" class="mt-2" />
                     </div>
 

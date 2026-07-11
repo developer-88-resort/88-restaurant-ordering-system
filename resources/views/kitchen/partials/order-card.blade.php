@@ -10,7 +10,7 @@
     <div class="px-5 pt-4 pb-3">
         <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-                <span class="text-lg font-bold text-gray-900">#{{ str_pad((string) $order->id, 4, '0', STR_PAD_LEFT) }}</span>
+                <span class="text-lg font-bold text-gray-900">{{ $order->orderNumber() }}</span>
                 <p class="text-sm text-gray-500 truncate">
                     @if ($order->order_type === \App\Enums\OrderType::Takeout)
                         {{ __('Take-out') }}

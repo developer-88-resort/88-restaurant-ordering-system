@@ -13,11 +13,11 @@ enum SpaceStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Available => 'Available',
-            self::Occupied => 'Occupied',
-            self::Reserved => 'Reserved',
-            self::Maintenance => 'Maintenance',
-            self::Disabled => 'Disabled',
+            self::Available => __('Available'),
+            self::Occupied => __('Occupied'),
+            self::Reserved => __('Reserved'),
+            self::Maintenance => __('Maintenance'),
+            self::Disabled => __('Disabled'),
         };
     }
 

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsAuditActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MenuItem extends Model
 {
+    use LogsAuditActivity;
+
     protected $fillable = [
         'menu_category_id',
         'name',
@@ -26,5 +29,10 @@ class MenuItem extends Model
     public function menuCategory(): BelongsTo
     {
         return $this->belongsTo(MenuCategory::class);
+    }
+
+    protected function auditLabel(): string
+    {
+        return 'Menu Item';
     }
 }

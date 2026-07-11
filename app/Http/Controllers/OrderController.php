@@ -6,15 +6,16 @@ use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Enums\PaymentStatus;
 use App\Enums\SpaceStatus;
+use App\Events\CustomerOrderStatusUpdated;
 use App\Events\KitchenUpdated;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Area;
 use App\Models\MenuCategory;
-use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Space;
 use App\Models\SpaceCategory;
 use App\Models\SpaceSession;
+use App\Services\OrderCreator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,9 +34,15 @@ class OrderController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $statusCounts = Order::selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
         return view('orders.index', [
             'orders' => $orders,
             'activeStatus' => $request->string('status')->toString() ?: null,
+            'statusCounts' => $statusCounts,
+            'totalOrders' => $statusCounts->sum(),
         ]);
     }
 
@@ -76,21 +83,6 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request): RedirectResponse
     {
         $order = DB::transaction(function () use ($request) {
-            $lines = collect($request->input('items'))->map(function ($line) {
-                $menuItem = MenuItem::findOrFail($line['menu_item_id']);
-                $unitPrice = (float) $menuItem->price;
-                $quantity = (int) $line['quantity'];
-
-                return [
-                    'menu_item_id' => $menuItem->id,
-                    'item_name' => $menuItem->name,
-                    'unit_price' => $unitPrice,
-                    'quantity' => $quantity,
-                    'subtotal' => $unitPrice * $quantity,
-                    'notes' => $line['notes'] ?? null,
-                ];
-            });
-
             $isTakeout = $request->string('order_type')->toString() === OrderType::Takeout->value;
             $space = null;
             $spaceId = null;
@@ -117,32 +109,21 @@ class OrderController extends Controller
                 }
             }
 
-            $order = Order::create([
+            return OrderCreator::create($request->input('items'), [
                 'order_type' => $isTakeout ? OrderType::Takeout : OrderType::DineIn,
                 'area_id' => $isTakeout ? null : $request->integer('area_id'),
                 'space_category_id' => $isTakeout ? null : $request->integer('space_category_id'),
                 'space_id' => $spaceId,
                 'space_session_id' => $spaceSessionId,
                 'created_by' => auth()->id(),
-                'status' => OrderStatus::Pending,
-                'payment_status' => PaymentStatus::Unpaid,
-                'total_amount' => $lines->sum('subtotal'),
                 'notes' => $request->string('notes')->toString() ?: null,
-            ]);
-
-            $order->items()->createMany($lines->all());
-
-            if ($space && $space->status === SpaceStatus::Available) {
-                $space->setStatusWithSharedTables(SpaceStatus::Occupied);
-            }
-
-            return $order;
+            ], $space);
         });
 
         broadcast(new KitchenUpdated());
 
         return redirect()->route('orders.show', $order)
-            ->with('status', 'Order created successfully.');
+            ->with('status', __('Order created successfully.'));
     }
 
     public function show(Order $order): View
@@ -156,7 +137,10 @@ class OrderController extends Controller
     {
         if ($order->status->isFinal()) {
             return redirect()->back()
-                ->with('error', "Order {$order->orderNumber()} is already {$order->status->label()} and can no longer be changed.");
+                ->with('error', __('Order :number is already :status and can no longer be changed.', [
+                    'number' => $order->orderNumber(),
+                    'status' => $order->status->label(),
+                ]));
         }
 
         $request->validate([
@@ -170,8 +154,12 @@ class OrderController extends Controller
         }
 
         broadcast(new KitchenUpdated());
+        broadcast(new CustomerOrderStatusUpdated($order));
 
-        return redirect()->back()->with('status', "Order {$order->orderNumber()} is now {$order->status->label()}.");
+        return redirect()->back()->with('status', __('Order :number is now :status.', [
+            'number' => $order->orderNumber(),
+            'status' => $order->status->label(),
+        ]));
     }
 
     /**
@@ -194,6 +182,14 @@ class OrderController extends Controller
 
     public function markAsPaid(Request $request, Order $order): RedirectResponse
     {
+        if ($order->payment_status !== PaymentStatus::Unpaid) {
+            return redirect()->back()
+                ->with('error', __('Order :number is already :status and cannot be marked as paid again.', [
+                    'number' => $order->orderNumber(),
+                    'status' => $order->payment_status->label(),
+                ]));
+        }
+
         $request->validate([
             'amount_received' => ['required', 'numeric', 'min:'.$order->total_amount],
         ]);
@@ -209,14 +205,14 @@ class OrderController extends Controller
             'paid_at' => now(),
         ]);
 
-        return redirect()->back()->with('status', "Order {$order->orderNumber()} marked as paid.");
+        return redirect()->back()->with('status', __('Order :number marked as paid.', ['number' => $order->orderNumber()]));
     }
 
     public function voidPayment(Request $request, Order $order): RedirectResponse
     {
         if ($order->payment_status !== PaymentStatus::Paid) {
             return redirect()->back()
-                ->with('error', "Order {$order->orderNumber()} has no paid payment to void.");
+                ->with('error', __('Order :number has no paid payment to void.', ['number' => $order->orderNumber()]));
         }
 
         $request->validate([
@@ -230,7 +226,7 @@ class OrderController extends Controller
             'void_reason' => $request->string('void_reason')->toString(),
         ]);
 
-        return redirect()->back()->with('status', "Payment for order {$order->orderNumber()} has been voided.");
+        return redirect()->back()->with('status', __('Payment for order :number has been voided.', ['number' => $order->orderNumber()]));
     }
 
     public function receipt(Order $order): View
@@ -249,6 +245,19 @@ class OrderController extends Controller
         $order->load(['area', 'spaceCategory', 'space', 'creator', 'items']);
 
         $pdf = Pdf::loadView('orders.receipt-pdf', ['order' => $order])->setPaper('a5', 'portrait');
+
+        // Dompdf's bundled fonts (DejaVu Sans, Helvetica, Courier, ...) have no
+        // Hangul glyphs, so Korean text would render as missing-glyph boxes.
+        // Register a Korean-capable font so it gets embedded in the output.
+        $fontMetrics = $pdf->getDomPDF()->getFontMetrics();
+        $fontMetrics->registerFont(
+            ['family' => 'Nanum Gothic Coding', 'style' => 'normal', 'weight' => 'normal'],
+            resource_path('fonts/NanumGothicCoding-Regular.ttf')
+        );
+        $fontMetrics->registerFont(
+            ['family' => 'Nanum Gothic Coding', 'style' => 'normal', 'weight' => 'bold'],
+            resource_path('fonts/NanumGothicCoding-Bold.ttf')
+        );
 
         return $pdf->download("{$order->receipt_number}.pdf");
     }

@@ -26,7 +26,7 @@ class AreaController extends Controller
     {
         Area::create($request->validated());
 
-        return redirect()->route('areas.index')->with('status', 'Area created successfully.');
+        return redirect()->route('areas.index')->with('status', __('Area created successfully.'));
     }
 
     public function edit(Area $area): View
@@ -41,18 +41,18 @@ class AreaController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
-        return redirect()->route('areas.index')->with('status', 'Area updated successfully.');
+        return redirect()->route('areas.index')->with('status', __('Area updated successfully.'));
     }
 
     public function destroy(Area $area): RedirectResponse
     {
         if ($area->categories()->exists() || $area->spaces()->exists()) {
             return redirect()->route('areas.index')
-                ->with('error', "\"{$area->name}\" still has categories or spaces and can't be deleted.");
+                ->with('error', __('":name" still has categories or spaces and can\'t be deleted.', ['name' => $area->name]));
         }
 
         $area->delete();
 
-        return redirect()->route('areas.index')->with('status', 'Area deleted successfully.');
+        return redirect()->route('areas.index')->with('status', __('Area deleted successfully.'));
     }
 }

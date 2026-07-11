@@ -23,7 +23,7 @@
             </h1>
 
             <p class="text-[#6F6258] text-lg mt-1 font-normal">
-                SuperAdmin Portal
+                {{ __('SuperAdmin Portal') }}
             </p>
         </div>
 
@@ -35,7 +35,7 @@
                 id="email"
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder="{{ __('Email') }}"
                 autocomplete="username"
                 value="{{ old('email') }}"
                 required
@@ -47,7 +47,7 @@
                 id="password"
                 type="password"
                 name="password"
-                placeholder="Password"
+                placeholder="{{ __('Password') }}"
                 autocomplete="current-password"
                 required
                 class="w-full mb-4 rounded-xl border border-[#D9CCBA] bg-white px-4 py-3 text-sm text-[#333] placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]"
@@ -65,7 +65,7 @@
                 type="submit"
                 class="w-full rounded-xl bg-[#8A3330] hover:bg-[#742927] text-white font-semibold py-3 transition duration-200"
             >
-                Sign in
+                {{ __('Sign in') }}
             </button>
 
             <p class="mt-4 text-center text-sm">
@@ -75,7 +75,7 @@
 
         {{-- Footer --}}
         <p class="mt-8 text-center text-sm text-[#8A7B6D]">
-            Authorized personnel only. Contact management for access.
+            {{ __('Authorized personnel only. Contact management for access.') }}
         </p>
 
     </div>

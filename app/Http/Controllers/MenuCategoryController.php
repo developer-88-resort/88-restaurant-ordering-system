@@ -35,7 +35,7 @@ class MenuCategoryController extends Controller
         MenuCategory::create($data);
 
         return redirect()->route('menu-categories.index')
-            ->with('status', 'Menu category created successfully.');
+            ->with('status', __('Menu category created successfully.'));
     }
 
     public function edit(MenuCategory $menuCategory): View
@@ -57,27 +57,28 @@ class MenuCategoryController extends Controller
         $menuCategory->update($data);
 
         return redirect()->route('menu-categories.index')
-            ->with('status', 'Menu category updated successfully.');
+            ->with('status', __('Menu category updated successfully.'));
     }
 
     public function toggleStatus(MenuCategory $menuCategory): RedirectResponse
     {
         $menuCategory->update(['is_active' => ! $menuCategory->is_active]);
 
-        return redirect()->back()
-            ->with('status', "\"{$menuCategory->name}\" is now ".($menuCategory->is_active ? 'active' : 'inactive').'.');
+        return redirect()->back()->with('status', $menuCategory->is_active
+            ? __('":name" is now active.', ['name' => $menuCategory->name])
+            : __('":name" is now inactive.', ['name' => $menuCategory->name]));
     }
 
     public function destroy(MenuCategory $menuCategory): RedirectResponse
     {
         if ($menuCategory->menuItems()->exists()) {
             return redirect()->route('menu-categories.index')
-                ->with('error', 'Cannot delete a category that still has menu items. Move or delete its items first.');
+                ->with('error', __('Cannot delete a category that still has menu items. Move or delete its items first.'));
         }
 
         $menuCategory->delete();
 
         return redirect()->route('menu-categories.index')
-            ->with('status', 'Menu category deleted successfully.');
+            ->with('status', __('Menu category deleted successfully.'));
     }
 }

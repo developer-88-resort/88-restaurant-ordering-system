@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -21,9 +20,7 @@ class UpdateUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$this->route('user')->id],
-            'password' => ['nullable', Password::defaults()],
             'role' => ['required', 'in:'.UserRole::Superadmin->value.','.UserRole::Admin->value.','.UserRole::Staff->value],
-            'is_active' => ['nullable', 'boolean'],
         ];
     }
 }

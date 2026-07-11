@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -70,7 +70,7 @@
                 <div class="flex justify-between font-semibold"><span>{{ __('Total') }}</span><span>{{ number_format($order->total_amount, 2) }}</span></div>
                 <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Payment Method') }}</span><span class="uppercase">{{ $order->payment_method }}</span></div>
                 <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Amount Received') }}</span><span>{{ number_format($order->amount_received, 2) }}</span></div>
-                <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Change') }}</span><span>{{ number_format($order->change_amount, 2) }}</span></div>
+                <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Change Due') }}</span><span>{{ number_format($order->change_amount, 2) }}</span></div>
             </div>
 
             @if ($order->payment_status === \App\Enums\PaymentStatus::Voided)

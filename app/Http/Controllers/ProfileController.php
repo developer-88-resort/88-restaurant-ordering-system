@@ -34,7 +34,7 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'Profile updated successfully.');
+        return Redirect::route('profile.edit')->with('status', __('Profile updated successfully.'));
     }
 
     /**
@@ -56,7 +56,7 @@ class ProfileController extends Controller
             'avatar_path' => $request->file('avatar')->store('avatars', 'public'),
         ]);
 
-        return Redirect::route('profile.edit')->with('status', 'Profile picture updated successfully.');
+        return Redirect::route('profile.edit')->with('status', __('Profile picture updated successfully.'));
     }
 
     /**
@@ -71,6 +71,6 @@ class ProfileController extends Controller
             $user->update(['avatar_path' => null]);
         }
 
-        return Redirect::route('profile.edit')->with('status', 'Profile picture removed.');
+        return Redirect::route('profile.edit')->with('status', __('Profile picture removed.'));
     }
 }

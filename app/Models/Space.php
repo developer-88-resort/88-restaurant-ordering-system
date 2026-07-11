@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsAuditActivity;
 use App\Enums\SpaceStatus;
 use App\Events\SpaceOccupancyChanged;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,8 @@ use Illuminate\Support\Str;
 
 class Space extends Model
 {
+    use LogsAuditActivity;
+
     protected $fillable = [
         'area_id',
         'category_id',
@@ -70,40 +73,90 @@ class Space extends Model
     }
 
     /**
-     * Replace this table's shared-table links with the given space IDs,
-     * keeping both directions of each pair in sync.
+     * All space IDs transitively connected to this one via shared-table
+     * links (including this space itself), found by walking the pivot
+     * graph rather than reading only this table's direct links.
+     *
+     * @return array<int>
+     */
+    public function groupSpaceIds(): array
+    {
+        $visited = [$this->id => true];
+        $queue = [$this->id];
+
+        while ($queue) {
+            $id = array_shift($queue);
+            $neighborIds = static::find($id)?->sharedTables()->pluck('spaces.id')->all() ?? [];
+
+            foreach ($neighborIds as $neighborId) {
+                if (! isset($visited[$neighborId])) {
+                    $visited[$neighborId] = true;
+                    $queue[] = $neighborId;
+                }
+            }
+        }
+
+        return array_keys($visited);
+    }
+
+    /**
+     * Replace this table's shared-table group with the given space IDs.
+     *
+     * Shared tables behave as one group rather than a parent/child pair: the
+     * whole group is linked as a full mesh (every member directly linked to
+     * every other member) so the group reads correctly — and the same full
+     * membership shows up pre-checked — no matter which table is opened
+     * next. Tables dropped from the group are fully detached from every
+     * former groupmate, not just from $this.
      *
      * @param  array<int>  $spaceIds
      */
     public function syncSharedTables(array $spaceIds): void
     {
-        $spaceIds = array_diff(array_unique($spaceIds), [$this->id]);
+        $requestedPartners = array_values(array_diff(array_unique($spaceIds), [$this->id]));
 
-        $current = $this->sharedTables()->pluck('spaces.id')->all();
+        $previousGroup = $this->groupSpaceIds();
+        $desiredGroup = array_values(array_unique(array_merge([$this->id], $requestedPartners)));
 
-        foreach (array_diff($current, $spaceIds) as $removedId) {
-            $this->sharedTables()->detach($removedId);
-            Space::find($removedId)?->sharedTables()->detach($this->id);
+        $droppedIds = array_diff($previousGroup, $desiredGroup);
+
+        foreach ($droppedIds as $droppedId) {
+            $dropped = static::find($droppedId);
+            if (! $dropped) {
+                continue;
+            }
+
+            foreach (array_diff($previousGroup, [$droppedId]) as $otherId) {
+                $dropped->sharedTables()->detach($otherId);
+                static::find($otherId)?->sharedTables()->detach($droppedId);
+            }
         }
 
-        foreach (array_diff($spaceIds, $current) as $addedId) {
-            $this->sharedTables()->syncWithoutDetaching($addedId);
-            Space::find($addedId)?->sharedTables()->syncWithoutDetaching($this->id);
+        foreach ($desiredGroup as $id) {
+            $space = $id === $this->id ? $this : static::find($id);
+            if (! $space) {
+                continue;
+            }
+
+            $space->sharedTables()->syncWithoutDetaching(array_diff($desiredGroup, [$id]));
         }
     }
 
     /**
      * Set this table's status and mirror it onto every linked shared table
      * — combined tables always show the same status as each other,
-     * regardless of which one was changed or what the new status is.
+     * regardless of which one was changed or what the new status is
+     * (Occupied, Reserved, Maintenance, or Disabled).
      *
-     * When a combined group goes from Occupied back to Available (the group
-     * has been vacated), the shared-table links are dissolved automatically
-     * so each table is independent again for its next assignment.
+     * Whenever the group goes back to Available — no matter what status it
+     * was in before (Occupied, Reserved, Maintenance, or Disabled) — the
+     * shared-table links are dissolved automatically so each table is
+     * independent again for its next assignment.
      */
     public function setStatusWithSharedTables(SpaceStatus $status): void
     {
         $wasOccupied = $this->status === SpaceStatus::Occupied;
+        $wasAvailable = $this->status === SpaceStatus::Available;
         $partners = $this->sharedTables;
 
         $this->update(['status' => $status]);
@@ -120,13 +173,13 @@ class Space extends Model
 
         if (! $wasOccupied && $status === SpaceStatus::Occupied) {
             broadcast(new SpaceOccupancyChanged($names.' '.($plural ? 'are' : 'is').' now Occupied.'));
-        } elseif ($wasOccupied && $status === SpaceStatus::Available) {
+        } elseif (! $wasAvailable && $status === SpaceStatus::Available) {
             broadcast(new SpaceOccupancyChanged($names.' '.($plural ? 'have' : 'has').' been vacated.'));
+        }
 
-            if ($partners->isNotEmpty()) {
-                foreach ($allTables as $table) {
-                    $table->syncSharedTables([]);
-                }
+        if ($status === SpaceStatus::Available && $partners->isNotEmpty()) {
+            foreach ($allTables as $table) {
+                $table->syncSharedTables([]);
             }
         }
     }

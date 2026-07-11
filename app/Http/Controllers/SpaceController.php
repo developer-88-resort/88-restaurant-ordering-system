@@ -35,9 +35,22 @@ class SpaceController extends Controller
         return view('spaces.index', ['areas' => $areas, 'activeAreaId' => $activeAreaId]);
     }
 
+    /**
+     * "New Space" never makes the Superadmin deal with categories directly:
+     * given a category, use it as-is; given an area, silently reuse (or
+     * create) that area's first category so a Space always has somewhere
+     * to belong, since category_id is required at the database level.
+     */
     public function create(Request $request): View
     {
-        $category = SpaceCategory::with('area')->findOrFail($request->integer('category_id'));
+        if ($categoryId = $request->integer('category_id')) {
+            $category = SpaceCategory::with('area')->findOrFail($categoryId);
+        } else {
+            $area = Area::findOrFail($request->integer('area_id'));
+            $category = $area->categories()->orderBy('sort_order')->orderBy('name')->first()
+                ?? SpaceCategory::create(['area_id' => $area->id, 'name' => $area->name, 'is_active' => true]);
+            $category->setRelation('area', $area);
+        }
 
         return view('spaces.create', ['category' => $category]);
     }
@@ -53,7 +66,7 @@ class SpaceController extends Controller
             'sort_order' => preg_match('/(\d+)$/', $name, $m) ? (int) $m[1] : 0,
         ]);
 
-        return redirect()->route('spaces.index', ['area' => $category->area_id])->with('status', 'Space created successfully.');
+        return redirect()->route('spaces.index', ['area' => $category->area_id])->with('status', __('Space created successfully.'));
     }
 
     public function storeBulk(StoreBulkSpacesRequest $request): RedirectResponse
@@ -77,9 +90,9 @@ class SpaceController extends Controller
             $space->wasRecentlyCreated ? $created++ : $skipped++;
         }
 
-        $message = "{$created} space(s) created.";
+        $message = trans_choice(':count space created.|:count spaces created.', $created, ['count' => $created]);
         if ($skipped > 0) {
-            $message .= " {$skipped} already existed and were skipped.";
+            $message .= ' '.trans_choice(':count already existed and was skipped.|:count already existed and were skipped.', $skipped, ['count' => $skipped]);
         }
 
         return redirect()->route('spaces.index', ['area' => $category->area_id])->with('status', $message);
@@ -108,7 +121,7 @@ class SpaceController extends Controller
         $space->syncSharedTables($request->input('shared_space_ids', []));
         $space->setStatusWithSharedTables(SpaceStatus::from($request->string('status')->toString()));
 
-        return redirect()->route('spaces.index', ['area' => $space->area_id])->with('status', 'Space updated successfully.');
+        return redirect()->route('spaces.index', ['area' => $space->area_id])->with('status', __('Space updated successfully.'));
     }
 
     public function updateStatus(Request $request, Space $space): RedirectResponse
@@ -120,7 +133,7 @@ class SpaceController extends Controller
         $space->setStatusWithSharedTables(SpaceStatus::from($request->string('status')->toString()));
 
         return redirect()->back()
-            ->with('status', "\"{$space->name}\" is now {$space->status->label()}.");
+            ->with('status', __('":name" is now :status.', ['name' => $space->name, 'status' => $space->status->label()]));
     }
 
     public function destroy(Space $space): RedirectResponse
@@ -131,13 +144,13 @@ class SpaceController extends Controller
 
         if ($hasActiveOrder) {
             return redirect()->route('spaces.index', ['area' => $space->area_id])
-                ->with('error', "\"{$space->name}\" has an active order and can't be deleted.");
+                ->with('error', __('":name" has an active order and can\'t be deleted.', ['name' => $space->name]));
         }
 
         $areaId = $space->area_id;
         $space->delete();
 
-        return redirect()->route('spaces.index', ['area' => $areaId])->with('status', 'Space deleted successfully.');
+        return redirect()->route('spaces.index', ['area' => $areaId])->with('status', __('Space deleted successfully.'));
     }
 
     public function print(Space $space): View

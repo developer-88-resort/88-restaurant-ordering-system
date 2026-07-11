@@ -2,7 +2,9 @@
 
 use App\Enums\UserRole;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\KitchenController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MenuCategoryController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\OrderController;
@@ -14,8 +16,9 @@ use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardCo
 use App\Http\Controllers\Superadmin\ReportController as SuperadminReportController;
 use App\Http\Controllers\Superadmin\SettingController as SuperadminSettingController;
 use App\Http\Controllers\Superadmin\UserController as SuperadminUserController;
-use App\Models\Space;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
 
 Route::get('/', function () {
     if (! auth()->check()) {
@@ -37,7 +40,11 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('/dashboard', [SuperadminDashboardController::class, 'index'])->name('dashboard');
-    Route::resource('users', SuperadminUserController::class)->except('show');
+    Route::resource('users', SuperadminUserController::class)->except(['show', 'destroy']);
+    Route::post('users/{user}/resend-invitation', [SuperadminUserController::class, 'resendInvitation'])->name('users.resend-invitation');
+    Route::post('users/{user}/send-password-reset', [SuperadminUserController::class, 'sendPasswordReset'])->name('users.send-password-reset');
+    Route::post('users/{user}/deactivate', [SuperadminUserController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('users/{user}/reactivate', [SuperadminUserController::class, 'reactivate'])->name('users.reactivate');
     Route::get('/settings', [SuperadminSettingController::class, 'edit'])->name('settings.edit');
     Route::put('/settings', [SuperadminSettingController::class, 'update'])->name('settings.update');
     Route::get('/audit-logs', [SuperadminAuditLogController::class, 'index'])->name('audit-logs.index');
@@ -81,8 +88,10 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::get('/kitchen', [KitchenController::class, 'index'])->name('kitchen.index');
 });
 
-Route::get('/order/{space:qr_token}', function (Space $space) {
-    return view('customer.space-placeholder', ['space' => $space]);
-})->name('customer.spaces.show');
+Route::get('/order/status/{token}', [CustomerOrderController::class, 'status'])->name('customer.orders.status');
+Route::get('/order/{space:qr_token}', [CustomerOrderController::class, 'show'])->name('customer.spaces.show');
+Route::post('/order/{space:qr_token}', [CustomerOrderController::class, 'store'])
+    ->middleware('throttle:20,1')
+    ->name('customer.orders.store');
 
 require __DIR__.'/auth.php';

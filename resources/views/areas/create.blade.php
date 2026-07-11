@@ -12,7 +12,7 @@
 
                 <div>
                     <x-input-label for="name" :value="__('Area Name')" />
-                    <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="e.g. Cottages" required autofocus />
+                    <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="{{ __('e.g. Cottages') }}" required autofocus />
                     <x-input-error :messages="$errors->get('name')" class="mt-2" />
                 </div>
 

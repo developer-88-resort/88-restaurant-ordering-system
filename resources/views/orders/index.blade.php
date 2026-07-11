@@ -8,7 +8,12 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="font-bold text-xl text-gray-900 leading-tight">{{ __('Order Management') }}</h2>
+                    <div class="flex items-center gap-2.5">
+                        <h2 class="font-bold text-xl text-gray-900 leading-tight">{{ __('Order Management') }}</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F3E1DC] text-[#8A3330]">
+                            {{ trans_choice(':count order|:count orders', $totalOrders, ['count' => $totalOrders]) }}
+                        </span>
+                    </div>
                     <p class="text-sm text-gray-500 mt-0.5">{{ __('Monitor and manage all customer orders') }}</p>
                 </div>
             </div>
@@ -35,17 +40,24 @@
     @endphp
 
     <div class="bg-white border border-[#E5DDD0] rounded-2xl shadow-sm p-4 mb-6">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 sm:flex-wrap sm:overflow-visible">
             <a href="{{ route('orders.index') }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition {{ is_null($activeStatus) ? 'bg-[#8A3330] text-white' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE]' }}">
+               class="inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-150 {{ is_null($activeStatus) ? 'bg-[#8A3330] text-white shadow-sm shadow-[#8A3330]/20' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE] hover:border-[#8A3330]/30' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">{!! $filterIcon(null) !!}</svg>
                 {{ __('All') }}
+                <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-bold {{ is_null($activeStatus) ? 'bg-white/25 text-white' : 'bg-[#F3E1DC] text-[#8A3330]' }}">
+                    {{ $totalOrders }}
+                </span>
             </a>
             @foreach (\App\Enums\OrderStatus::cases() as $status)
+                @php $isActive = $activeStatus === $status->value; @endphp
                 <a href="{{ route('orders.index', ['status' => $status->value]) }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition {{ $activeStatus === $status->value ? 'bg-[#8A3330] text-white' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE]' }}">
+                   class="inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-150 {{ $isActive ? 'bg-[#8A3330] text-white shadow-sm shadow-[#8A3330]/20' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE] hover:border-[#8A3330]/30' }}">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">{!! $filterIcon($status->value) !!}</svg>
                     {{ $status->label() }}
+                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-bold {{ $isActive ? 'bg-white/25 text-white' : 'bg-[#F3E1DC] text-[#8A3330]' }}">
+                        {{ $statusCounts[$status->value] ?? 0 }}
+                    </span>
                 </a>
             @endforeach
         </div>

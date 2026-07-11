@@ -53,7 +53,7 @@ class MenuItemController extends Controller
         MenuItem::create($data);
 
         return redirect()->route('menu-items.index')
-            ->with('status', 'Menu item created successfully.');
+            ->with('status', __('Menu item created successfully.'));
     }
 
     public function edit(MenuItem $menuItem): View
@@ -80,15 +80,16 @@ class MenuItemController extends Controller
         $menuItem->update($data);
 
         return redirect()->route('menu-items.index')
-            ->with('status', 'Menu item updated successfully.');
+            ->with('status', __('Menu item updated successfully.'));
     }
 
     public function toggleAvailability(MenuItem $menuItem): RedirectResponse
     {
         $menuItem->update(['is_available' => ! $menuItem->is_available]);
 
-        return redirect()->back()
-            ->with('status', "\"{$menuItem->name}\" is now ".($menuItem->is_available ? 'available' : 'unavailable').'.');
+        return redirect()->back()->with('status', $menuItem->is_available
+            ? __('":name" is now available.', ['name' => $menuItem->name])
+            : __('":name" is now unavailable.', ['name' => $menuItem->name]));
     }
 
     public function destroy(MenuItem $menuItem): RedirectResponse
@@ -100,6 +101,6 @@ class MenuItemController extends Controller
         $menuItem->delete();
 
         return redirect()->back()
-            ->with('status', 'Menu item deleted successfully.');
+            ->with('status', __('Menu item deleted successfully.'));
     }
 }

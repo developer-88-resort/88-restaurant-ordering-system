@@ -25,7 +25,7 @@ class SpaceCategoryController extends Controller
         ]);
 
         return redirect()->route('spaces.index', ['area' => $category->area_id])
-            ->with('status', 'Category created successfully.');
+            ->with('status', __('Category created successfully.'));
     }
 
     public function edit(SpaceCategory $spaceCategory): View
@@ -42,21 +42,21 @@ class SpaceCategoryController extends Controller
         ]);
 
         return redirect()->route('spaces.index', ['area' => $spaceCategory->area_id])
-            ->with('status', 'Category updated successfully.');
+            ->with('status', __('Category updated successfully.'));
     }
 
     public function destroy(SpaceCategory $spaceCategory): RedirectResponse
     {
         if ($spaceCategory->spaces()->exists() || $spaceCategory->activeOccupancyCount() > 0) {
             return redirect()->route('spaces.index', ['area' => $spaceCategory->area_id])
-                ->with('error', "\"{$spaceCategory->name}\" still has spaces or active occupancy and can't be deleted.");
+                ->with('error', __('":name" still has spaces or active occupancy and can\'t be deleted.', ['name' => $spaceCategory->name]));
         }
 
         $areaId = $spaceCategory->area_id;
         $spaceCategory->delete();
 
         return redirect()->route('spaces.index', ['area' => $areaId])
-            ->with('status', 'Category deleted successfully.');
+            ->with('status', __('Category deleted successfully.'));
     }
 
     public function endSession(SpaceCategory $spaceCategory, SpaceSession $spaceSession): RedirectResponse
@@ -65,6 +65,6 @@ class SpaceCategoryController extends Controller
 
         $spaceSession->update(['status' => 'completed', 'ended_at' => now()]);
 
-        return redirect()->back()->with('status', "Occupancy released for \"{$spaceCategory->name}\".");
+        return redirect()->back()->with('status', __('Occupancy released for ":name".', ['name' => $spaceCategory->name]));
     }
 }

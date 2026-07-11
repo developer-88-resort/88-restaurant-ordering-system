@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\SpaceStatus;
+use App\Models\Space;
 use App\Models\SpaceCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -46,14 +48,28 @@ class StoreOrderRequest extends FormRequest
 
             if ($category->is_free) {
                 if ($category->isFull()) {
-                    $validator->errors()->add('space_category_id', "\"{$category->name}\" is full.");
+                    $validator->errors()->add('space_category_id', __('":name" is full.', ['name' => $category->name]));
                 }
 
                 return;
             }
 
             if (! $this->filled('space_id')) {
-                $validator->errors()->add('space_id', 'Please select a space.');
+                $validator->errors()->add('space_id', __('Please select a space.'));
+
+                return;
+            }
+
+            $space = Space::find($this->input('space_id'));
+
+            if (! $space || $space->category_id !== $category->id) {
+                $validator->errors()->add('space_id', __('The selected space does not belong to this category.'));
+
+                return;
+            }
+
+            if ($space->status !== SpaceStatus::Available) {
+                $validator->errors()->add('space_id', __('":name" is no longer available. Please pick another table.', ['name' => $space->name]));
             }
         });
     }

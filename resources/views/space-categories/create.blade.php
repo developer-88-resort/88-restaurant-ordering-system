@@ -13,7 +13,7 @@
 
                 <div>
                     <x-input-label for="name" :value="__('Category Name')" />
-                    <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="e.g. Standard Kubo" required autofocus />
+                    <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="{{ __('e.g. Standard Kubo') }}" required autofocus />
                     <x-input-error :messages="$errors->get('name')" class="mt-2" />
                 </div>
 

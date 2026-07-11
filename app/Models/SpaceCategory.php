@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsAuditActivity;
 use App\Enums\SpaceStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Support\Str;
 
 class SpaceCategory extends Model
 {
+    use LogsAuditActivity;
+
     protected $fillable = [
         'area_id',
         'name',
@@ -88,5 +91,10 @@ class SpaceCategory extends Model
 
         return $this->max_active_occupancy !== null
             && $this->activeOccupancyCount() >= $this->max_active_occupancy;
+    }
+
+    protected function auditLabel(): string
+    {
+        return 'Space Category';
     }
 }

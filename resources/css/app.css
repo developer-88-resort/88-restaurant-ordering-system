@@ -32,6 +32,17 @@ html {
     height: 0 !important;
 }
 
+/* For horizontally-swipeable strips (e.g. mobile filter pills) where a
+   visible scrollbar reads as a stray/broken line rather than a control. */
+.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
 @keyframes fade-slide-up {
     from {
         opacity: 0;

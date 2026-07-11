@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsAuditActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    use LogsAuditActivity;
+
     protected $fillable = [
         'resort_name',
         'address',
@@ -26,5 +29,10 @@ class Setting extends Model
     public static function current(): self
     {
         return static::firstOrCreate(['id' => 1], ['resort_name' => '88 Hot Spring Resort']);
+    }
+
+    protected function auditLabel(): string
+    {
+        return 'Settings';
     }
 }

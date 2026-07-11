@@ -21,6 +21,6 @@ class SettingController extends Controller
     {
         Setting::current()->update($request->validated());
 
-        return redirect()->route('superadmin.settings.edit')->with('status', 'Settings updated successfully.');
+        return redirect()->route('superadmin.settings.edit')->with('status', __('Settings updated successfully.'));
     }
 }
