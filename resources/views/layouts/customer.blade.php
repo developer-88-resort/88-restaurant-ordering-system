@@ -18,7 +18,7 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 antialiased bg-[#F7F0E3]">
+    <body class="font-sans text-gray-900 antialiased bg-[#F7F0E3]" data-turbo="false">
         <x-toast />
 
         <header class="sticky top-0 z-40 bg-white border-b border-[#E5DDD0]">

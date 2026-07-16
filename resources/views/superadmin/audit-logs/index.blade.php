@@ -3,7 +3,10 @@
         <div
             class="flex items-center justify-between"
             x-data
-            x-init="Echo.private('audit-logs').listen('.AuditLogCreated', () => window.location.reload())"
+            x-init="
+                Echo.private('audit-logs').listen('.AuditLogCreated', () => window.location.reload());
+                turboCleanup(() => Echo.leave('audit-logs'));
+            "
         >
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Audit Logs') }}

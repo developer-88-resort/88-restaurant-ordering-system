@@ -3,6 +3,7 @@
 use App\Enums\UserRole;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\CustomerOrderController;
+use App\Http\Controllers\CustomerWelcomeController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MenuCategoryController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardCo
 use App\Http\Controllers\Superadmin\ReportController as SuperadminReportController;
 use App\Http\Controllers\Superadmin\SettingController as SuperadminSettingController;
 use App\Http\Controllers\Superadmin\UserController as SuperadminUserController;
+use App\Http\Controllers\Superadmin\WelcomeQrController as SuperadminWelcomeQrController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
@@ -49,6 +51,9 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'role:supe
     Route::put('/settings', [SuperadminSettingController::class, 'update'])->name('settings.update');
     Route::get('/audit-logs', [SuperadminAuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('/reports', [SuperadminReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/pdf', [SuperadminReportController::class, 'pdf'])->name('reports.pdf');
+    Route::get('/welcome-qr', [SuperadminWelcomeQrController::class, 'print'])->name('welcome-qr.print');
+    Route::get('/welcome-qr/image', [SuperadminWelcomeQrController::class, 'image'])->name('welcome-qr.image');
 });
 
 Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
@@ -89,9 +94,24 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
 });
 
 Route::get('/order/status/{token}', [CustomerOrderController::class, 'status'])->name('customer.orders.status');
+Route::get('/order/receipt/{token}', [CustomerOrderController::class, 'receipt'])->name('customer.orders.receipt');
 Route::get('/order/{space:qr_token}', [CustomerOrderController::class, 'show'])->name('customer.spaces.show');
 Route::post('/order/{space:qr_token}', [CustomerOrderController::class, 'store'])
     ->middleware('throttle:20,1')
     ->name('customer.orders.store');
+
+// The general "lobby QR" welcome flow — see CustomerWelcomeController's
+// class doc comment for how this differs from the per-table QR flow above.
+Route::get('/welcome', [CustomerWelcomeController::class, 'show'])->name('customer.welcome.show');
+Route::get('/welcome/seats', [CustomerWelcomeController::class, 'seats'])->name('customer.welcome.seats');
+Route::get('/welcome/takeout', [CustomerWelcomeController::class, 'takeoutMenu'])->name('customer.welcome.takeout');
+Route::post('/welcome/takeout', [CustomerWelcomeController::class, 'storeTakeout'])
+    ->middleware('throttle:20,1')
+    ->name('customer.welcome.takeout.store');
+Route::get('/welcome/menu', [CustomerWelcomeController::class, 'menu'])->name('customer.welcome.menu');
+Route::get('/welcome/call-staff', [CustomerWelcomeController::class, 'callStaffForm'])->name('customer.welcome.call-staff.form');
+Route::post('/welcome/call-staff', [CustomerWelcomeController::class, 'callStaff'])
+    ->middleware('throttle:10,1')
+    ->name('customer.welcome.call-staff.send');
 
 require __DIR__.'/auth.php';

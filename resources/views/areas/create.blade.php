@@ -18,7 +18,7 @@
 
                 <div class="mt-5">
                     <x-input-label for="sort_order" :value="__('Sort Order')" />
-                    <x-text-input id="sort_order" name="sort_order" type="number" min="0" class="block mt-1 w-full" :value="old('sort_order', 0)" />
+                    <x-text-input id="sort_order" name="sort_order" type="number" min="0" class="block mt-1 w-full" :value="old('sort_order', $nextSortOrder)" />
                     <x-input-error :messages="$errors->get('sort_order')" class="mt-2" />
                 </div>
 

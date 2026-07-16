@@ -22,21 +22,35 @@
             x-data="{
                 activeArea: '{{ $activeAreaId ?? $areas->first()->id }}',
                 toasts: [],
-                reloadScheduled: false,
+                statusMeta: {
+                    available: { label: @js(__('Available')), accent: 'bg-green-500' },
+                    occupied: { label: @js(__('Occupied')), accent: 'bg-red-500' },
+                    reserved: { label: @js(__('Reserved')), accent: 'bg-orange-500' },
+                    maintenance: { label: @js(__('Maintenance')), accent: 'bg-yellow-500' },
+                    disabled: { label: @js(__('Disabled')), accent: 'bg-blue-500' },
+                },
                 pushToast(message) {
                     const id = Date.now() + Math.random();
                     this.toasts.push({ id, message });
                     setTimeout(() => {
                         this.toasts = this.toasts.filter(t => t.id !== id);
                     }, 6000);
-
-                    if (!this.reloadScheduled) {
-                        this.reloadScheduled = true;
-                        setTimeout(() => window.location.reload(), 6500);
-                    }
+                },
+                applyStatus(spaceIds, status) {
+                    const meta = this.statusMeta[status];
+                    if (!meta) return;
+                    spaceIds.forEach((id) => {
+                        const select = document.getElementById('space-status-select-' + id);
+                        const accent = document.getElementById('space-status-accent-' + id);
+                        if (select) select.value = status;
+                        if (accent) accent.className = accent.className.replace(/bg-\S+-500/, meta.accent);
+                    });
                 },
             }"
-            x-init="Echo.private('spaces').listen('.SpaceOccupancyChanged', (e) => pushToast(e.message))"
+            x-init="
+                Echo.private('spaces').listen('.SpaceOccupancyChanged', (e) => { pushToast(e.message); applyStatus(e.space_ids, e.status); });
+                turboCleanup(() => Echo.leave('spaces'));
+            "
         >
             {{-- Live occupancy toasts --}}
             <div class="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 z-[60] flex flex-col gap-3 sm:w-96">
@@ -108,8 +122,8 @@
                                         @csrf
                                         @method('PATCH')
                                         <div class="relative w-full">
-                                            <div class="absolute inset-y-0 left-0 w-full -translate-x-2 rounded-full {{ $space->status->capsuleAccentClass() }}"></div>
-                                            <select name="status" onchange="this.form.submit()"
+                                            <div id="space-status-accent-{{ $space->id }}" class="absolute inset-y-0 left-0 w-full -translate-x-2 rounded-full {{ $space->status->capsuleAccentClass() }}"></div>
+                                            <select id="space-status-select-{{ $space->id }}" name="status" onchange="this.form.submit()"
                                                     class="relative w-full text-xs font-bold text-black text-center rounded-full px-3 py-1.5 bg-white border-2 border-gray-900 focus:ring-2 focus:ring-[#8A3330] focus:outline-none">
                                                 @foreach (\App\Enums\SpaceStatus::cases() as $status)
                                                     <option value="{{ $status->value }}" @selected($space->status === $status)>{{ $status->label() }}</option>

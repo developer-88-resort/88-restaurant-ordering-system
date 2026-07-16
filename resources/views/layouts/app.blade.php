@@ -19,12 +19,27 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
+        @php
+            $pendingOrdersCount = \App\Models\Order::where('status', \App\Enums\OrderStatus::Pending)->count();
+        @endphp
         <div
             x-data="{
                 sidebarOpen: false,
                 sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === '1',
+                pendingOrdersCount: {{ $pendingOrdersCount }},
+                staffAlerts: [],
+                pushStaffAlert(message) {
+                    const id = Date.now() + Math.random();
+                    this.staffAlerts.push({ id, message });
+                    setTimeout(() => { this.staffAlerts = this.staffAlerts.filter(a => a.id !== id); }, 8000);
+                },
             }"
-            x-init="$watch('sidebarCollapsed', value => localStorage.setItem('sidebarCollapsed', value ? '1' : '0'))"
+            x-init="
+                $watch('sidebarCollapsed', value => localStorage.setItem('sidebarCollapsed', value ? '1' : '0'));
+                Echo.private('kitchen').listen('.KitchenUpdated', (e) => { pendingOrdersCount = e.pending_orders_count; });
+                Echo.private('staff-alerts').listen('.StaffAssistanceRequested', (e) => pushStaffAlert(e.message));
+                turboCleanup(() => { Echo.leave('kitchen'); Echo.leave('staff-alerts'); });
+            "
             class="min-h-screen bg-[#F7F0E3]"
         >
 
@@ -59,7 +74,7 @@
                             </span>
                         </a>
                         <x-language-switcher />
-                        <form method="POST" action="{{ route('logout') }}">
+                        <form method="POST" action="{{ route('logout') }}" data-turbo="false">
                             @csrf
                             <button type="submit" class="px-3 sm:px-4 py-1.5 rounded-lg border border-[#D9CCBA] text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 {{ __('Sign out') }}
@@ -70,6 +85,36 @@
             </header>
 
             <x-toast />
+
+            {{-- Live "Call a Staff" alerts — pushed in real time, separate
+                 from the session-flash <x-toast/> above since these can
+                 arrive on any staff page at any moment. --}}
+            <div class="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 z-[70] flex flex-col gap-3 sm:w-96">
+                <template x-for="alert in staffAlerts" :key="alert.id">
+                    <div
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-3 scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 translate-y-1"
+                        class="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 pl-4 pr-3 py-3.5 shadow-xl"
+                    >
+                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4 text-amber-700">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                        </div>
+                        <p class="flex-1 pt-1 text-sm font-medium text-amber-900" x-text="alert.message"></p>
+                        <button type="button" @click="staffAlerts = staffAlerts.filter(a => a.id !== alert.id)"
+                                class="shrink-0 rounded-md p-1 text-amber-400 hover:bg-amber-100 hover:text-amber-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+            </div>
 
             <div class="flex">
 
@@ -130,7 +175,7 @@
 
                         @if ($isOperational)
                             <x-sidebar-group :label="__('Operations')">
-                                <x-sidebar-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
+                                <x-sidebar-link :href="route('orders.index')" :active="request()->routeIs('orders.*')" :badge="$pendingOrdersCount">
                                     <x-slot:icon>
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M18.75 18.75V9.375c0-.621-.504-1.125-1.125-1.125H8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
@@ -139,7 +184,7 @@
                                     {{ __('Order Management') }}
                                 </x-sidebar-link>
 
-                                <x-sidebar-link :href="route('kitchen.index')" :active="request()->routeIs('kitchen.*')">
+                                <x-sidebar-link :href="route('kitchen.index')" :active="request()->routeIs('kitchen.*')" :badge="$pendingOrdersCount">
                                     <x-slot:icon>
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.601a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />

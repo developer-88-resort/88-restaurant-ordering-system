@@ -15,6 +15,7 @@ class OrderItem extends Model
         'quantity',
         'subtotal',
         'notes',
+        'is_discount_eligible',
     ];
 
     protected function casts(): array
@@ -22,6 +23,7 @@ class OrderItem extends Model
         return [
             'unit_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
+            'is_discount_eligible' => 'boolean',
         ];
     }
 

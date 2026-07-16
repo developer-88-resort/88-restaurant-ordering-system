@@ -38,13 +38,15 @@ class CustomerOrderStatusUpdated implements ShouldBroadcastNow
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, string|bool>
      */
     public function broadcastWith(): array
     {
         return [
             'status' => $this->order->status->value,
             'label' => $this->order->status->label(),
+            'payment_status' => $this->order->payment_status->value,
+            'has_receipt' => (bool) $this->order->receipt_number,
         ];
     }
 }

@@ -64,7 +64,7 @@
                 <h3 class="text-sm font-semibold text-gray-900 mb-3">{{ __('QR Code') }}</h3>
                 <img src="{{ route('spaces.qr-code', $space) }}" alt="{{ __('QR code for') }} {{ $space->name }}" class="mx-auto h-40 w-40 border border-[#E5DDD0] rounded">
                 <a href="{{ route('spaces.print', $space) }}" target="_blank" class="block mt-3 text-sm text-[#8A3330] hover:underline">{{ __('Print') }}</a>
-                <a href="{{ route('spaces.qr-code', ['space' => $space, 'download' => 1]) }}" class="block mt-1 text-sm text-[#8A3330] hover:underline">{{ __('Download SVG') }}</a>
+                <a href="{{ route('spaces.qr-code', ['space' => $space, 'download' => 1]) }}" data-turbo="false" class="block mt-1 text-sm text-[#8A3330] hover:underline">{{ __('Download SVG') }}</a>
             </div>
         </div>
     </div>

@@ -9,7 +9,7 @@
                 <a href="{{ route('menu-categories.index') }}" class="text-sm text-[#8A3330] hover:underline font-medium">
                     {{ __('Manage Categories') }}
                 </a>
-                @if ($categories->isEmpty())
+                @if (! $hasCategories)
                     <span class="inline-flex items-center px-4 py-2 bg-gray-300 rounded-md font-semibold text-xs text-white uppercase tracking-widest cursor-not-allowed">
                         {{ __('New Item') }}
                     </span>
@@ -23,7 +23,7 @@
     </x-slot>
 
 
-    @if ($categories->isEmpty())
+    @if (! $hasCategories)
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center rounded-xl border border-[#E5DDD0] bg-white p-5">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5 text-amber-600">
@@ -40,56 +40,114 @@
         </div>
     @endif
 
-    {{-- Search --}}
-    <form method="GET" action="{{ route('menu-items.index') }}" class="mb-4">
-        @if ($activeCategoryId)
-            <input type="hidden" name="category" value="{{ $activeCategoryId }}">
-        @endif
-        <div class="relative">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#a99c8f" class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <input
-                type="search"
-                name="search"
-                value="{{ $search }}"
-                placeholder="{{ __('Search menu...') }}"
-                class="w-full rounded-xl border border-[#D9CCBA] bg-white pl-11 pr-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]"
-            >
-        </div>
-    </form>
-
-    {{-- Category pills --}}
-    @if ($categories->isNotEmpty())
-        <div class="flex flex-wrap gap-2 mb-6">
-            <a href="{{ route('menu-items.index', array_filter(['search' => $search])) }}"
-               class="px-4 py-1.5 rounded-full text-sm font-medium transition {{ is_null($activeCategoryId) ? 'bg-[#8A3330] text-white' : 'bg-[#F3E1DC] text-gray-700 hover:bg-[#e9d3cb]' }}">
-                {{ __('All') }}
-            </a>
-            @foreach ($categories as $category)
-                <a href="{{ route('menu-items.index', array_filter(['category' => $category->id, 'search' => $search])) }}"
-                   class="px-4 py-1.5 rounded-full text-sm font-medium transition {{ $activeCategoryId === $category->id ? 'bg-[#8A3330] text-white' : 'bg-[#F3E1DC] text-gray-700 hover:bg-[#e9d3cb]' }} {{ $category->is_active ? '' : 'opacity-50' }}">
-                    {{ $category->name }}
-                    @unless ($category->is_active)
-                        <span class="text-[10px]">({{ __('inactive') }})</span>
-                    @endunless
-                </a>
-            @endforeach
-        </div>
-    @endif
-
-    {{-- Item grid --}}
     @if ($items->isEmpty())
+        {{-- Nothing matches the search at all — no point rendering pills for an empty grid. --}}
         <x-empty-state
             :title="__('No menu items found')"
             :description="__('Try adjusting your search or filters, or add your first menu item.')"
-            :actionLabel="$categories->isEmpty() ? null : __('New Item')"
-            :actionHref="$categories->isEmpty() ? null : route('menu-items.create')"
+            :actionLabel="! $hasCategories ? null : __('New Item')"
+            :actionHref="! $hasCategories ? null : route('menu-items.create')"
         />
     @else
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            @foreach ($items as $item)
-                <div class="group bg-white border border-[#E5DDD0] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#D9CCBA] transition-all duration-200">
+        <div
+            x-data="{
+                selectedCategory: 'all',
+                query: '',
+                itemsIndex: @js($items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'categoryId' => $item->menu_category_id,
+                    'name' => $item->name,
+                    'categoryName' => $item->menuCategory->name,
+                ])),
+                matchesCategory(item) {
+                    return this.selectedCategory === 'all' || item.categoryId === this.selectedCategory;
+                },
+                matchesSearch(item) {
+                    const q = this.query.trim().toLowerCase();
+                    if (!q) return true;
+                    return item.name.toLowerCase().includes(q) || item.categoryName.toLowerCase().includes(q);
+                },
+                isItemVisible(id) {
+                    const item = this.itemsIndex.find((entry) => entry.id === id);
+                    return item ? (this.matchesCategory(item) && this.matchesSearch(item)) : false;
+                },
+                get hasVisibleItems() {
+                    return this.itemsIndex.some((item) => this.matchesCategory(item) && this.matchesSearch(item));
+                },
+                clearSearch() {
+                    this.query = '';
+                },
+            }"
+        >
+            {{-- Search --}}
+            <div class="relative mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#a99c8f" class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <input
+                    type="text"
+                    x-model="query"
+                    placeholder="{{ __('Search menu...') }}"
+                    autocomplete="off"
+                    aria-label="{{ __('Search menu...') }}"
+                    class="w-full rounded-xl border border-[#D9CCBA] bg-white pl-11 pr-10 py-3 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]"
+                >
+                <button
+                    type="button"
+                    x-show="query.length > 0"
+                    x-cloak
+                    @click="clearSearch()"
+                    aria-label="{{ __('Clear search') }}"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Category pills --}}
+            @if ($categories->isNotEmpty())
+                <div class="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 mb-6 sm:flex-wrap sm:overflow-visible">
+                    <button type="button"
+                            @click="selectedCategory = 'all'"
+                            :class="selectedCategory === 'all' ? 'bg-[#8A3330] text-white' : 'bg-[#F3E1DC] text-gray-700 hover:bg-[#e9d3cb]'"
+                            class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition">
+                        {{ __('All') }}
+                    </button>
+                    @foreach ($categories as $category)
+                        <button type="button"
+                                @click="selectedCategory = {{ $category->id }}"
+                                :class="selectedCategory === {{ $category->id }} ? 'bg-[#8A3330] text-white' : 'bg-[#F3E1DC] text-gray-700 hover:bg-[#e9d3cb]'"
+                                class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition {{ $category->is_active ? '' : 'opacity-50' }}">
+                            {{ $category->name }}
+                            @unless ($category->is_active)
+                                <span class="text-[10px]">({{ __('inactive') }})</span>
+                            @endunless
+                        </button>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Nothing matches the current search/category --}}
+            <div x-show="!hasVisibleItems" x-cloak>
+                <x-empty-state
+                    :title="__('No menu items found')"
+                    :description="__('Try a different keyword or category.')"
+                />
+                <div x-show="query.length > 0" x-cloak class="flex justify-center -mt-6 pb-2">
+                    <button type="button" @click="clearSearch()" class="text-sm font-medium text-[#8A3330] hover:underline">
+                        {{ __('Clear search') }}
+                    </button>
+                </div>
+            </div>
+
+            {{-- Item grid --}}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                @foreach ($items as $item)
+                    <div
+                        x-show="isItemVisible({{ $item->id }})"
+                        class="group bg-white border border-[#E5DDD0] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#D9CCBA] transition-all duration-200">
                     <div class="aspect-square bg-gradient-to-br from-[#FAF6EE] to-[#F1E9DA] relative overflow-hidden">
                         @if ($item->image_path)
                             <img src="{{ asset('storage/'.$item->image_path) }}" alt="{{ $item->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
@@ -147,6 +205,7 @@
                     </div>
                 </div>
             @endforeach
+            </div>
         </div>
     @endif
 </x-app-layout>

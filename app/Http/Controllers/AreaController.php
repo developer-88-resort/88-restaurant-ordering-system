@@ -19,7 +19,7 @@ class AreaController extends Controller
 
     public function create(): View
     {
-        return view('areas.create');
+        return view('areas.create', ['nextSortOrder' => Area::max('sort_order') + 1]);
     }
 
     public function store(StoreAreaRequest $request): RedirectResponse

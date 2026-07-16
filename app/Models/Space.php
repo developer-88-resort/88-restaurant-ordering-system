@@ -172,9 +172,17 @@ class Space extends Model
         $plural = $allTables->count() > 1;
 
         if (! $wasOccupied && $status === SpaceStatus::Occupied) {
-            broadcast(new SpaceOccupancyChanged($names.' '.($plural ? 'are' : 'is').' now Occupied.'));
+            broadcast(new SpaceOccupancyChanged(
+                $names.' '.($plural ? 'are' : 'is').' now Occupied.',
+                $allTables->pluck('id')->all(),
+                $status->value,
+            ));
         } elseif (! $wasAvailable && $status === SpaceStatus::Available) {
-            broadcast(new SpaceOccupancyChanged($names.' '.($plural ? 'have' : 'has').' been vacated.'));
+            broadcast(new SpaceOccupancyChanged(
+                $names.' '.($plural ? 'have' : 'has').' been vacated.',
+                $allTables->pluck('id')->all(),
+                $status->value,
+            ));
         }
 
         if ($status === SpaceStatus::Available && $partners->isNotEmpty()) {

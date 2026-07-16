@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Space;
 use App\Services\OrderCreator;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
@@ -22,7 +23,7 @@ use Illuminate\View\View;
  */
 class CustomerOrderController extends Controller
 {
-    public function show(Space $space): View
+    public function show(Request $request, Space $space): View
     {
         if (! $this->isOrderable($space)) {
             return view('customer.space-unavailable', ['space' => $space]);
@@ -31,6 +32,9 @@ class CustomerOrderController extends Controller
         return view('customer.menu', [
             'space' => $space,
             'categories' => $this->activeMenu(),
+            // Only present when arriving via the Welcome (lobby QR) flow's
+            // "Choose a Seat" picker — a direct per-table QR scan has none.
+            'customerName' => $request->string('name')->toString() ?: null,
         ]);
     }
 
@@ -48,6 +52,7 @@ class CustomerOrderController extends Controller
             'space_session_id' => null,
             'created_by' => auth()->id(),
             'notes' => $request->string('notes')->toString() ?: null,
+            'customer_name' => $request->string('customer_name')->toString() ?: null,
         ], $space);
 
         broadcast(new KitchenUpdated());
@@ -57,9 +62,18 @@ class CustomerOrderController extends Controller
 
     public function status(string $token): View
     {
-        $order = Order::where('public_token', $token)->with('items')->firstOrFail();
+        $order = Order::where('public_token', $token)->with(['items', 'space'])->firstOrFail();
 
         return view('customer.status', ['order' => $order]);
+    }
+
+    public function receipt(string $token): View
+    {
+        $order = Order::where('public_token', $token)->with(['items', 'creator', 'voidedBy', 'currentInvoiceSnapshot'])->firstOrFail();
+
+        abort_unless($order->receipt_number, 404);
+
+        return view('customer.receipt', ['order' => $order]);
     }
 
     /**

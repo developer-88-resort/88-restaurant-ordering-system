@@ -7,30 +7,29 @@ use App\Http\Requests\UpdateMenuItemRequest;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class MenuItemController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
         $categories = MenuCategory::withCount('menuItems')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
+        // Category and search both filter client-side (instant, no
+        // reload) — every item ships to the page once and the filtering
+        // happens in the browser.
         $items = MenuItem::with('menuCategory')
-            ->when($request->filled('category'), fn ($query) => $query->where('menu_category_id', $request->integer('category')))
-            ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%'))
             ->orderBy('name')
             ->get();
 
         return view('menu-items.index', [
             'items' => $items,
             'categories' => $categories,
-            'activeCategoryId' => $request->integer('category') ?: null,
-            'search' => $request->string('search')->toString(),
+            'hasCategories' => $categories->isNotEmpty(),
         ]);
     }
 

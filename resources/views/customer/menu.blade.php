@@ -4,6 +4,61 @@
             cart: [],
             eachLabel: @js(__('each')),
             cartOpen: false,
+            selectedCategory: 'all',
+            selectCategory(id) {
+                this.selectedCategory = id;
+                const target = id === 'all' ? this.$refs.menuTop : document.getElementById('category-' + id);
+                target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            },
+            watchCategoryScroll() {
+                const sections = [...this.$el.querySelectorAll('[data-category-id]')];
+                if (!sections.length) return;
+
+                // Active line sits just below the sticky header + chip bar.
+                // The active category is the last section whose top has
+                // already scrolled past that line — the standard scrollspy
+                // rule, and unlike IntersectionObserver it stays correct in
+                // both scroll directions and never flickers between two
+                // categories when one section is short.
+                const activeLine = 140;
+                let ticking = false;
+
+                const updateActiveCategory = () => {
+                    let current = sections[0];
+
+                    for (const section of sections) {
+                        if (section.getBoundingClientRect().top - activeLine <= 0) {
+                            current = section;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    this.selectedCategory = Number(current.dataset.categoryId);
+                    ticking = false;
+                };
+
+                updateActiveCategory();
+
+                window.addEventListener('scroll', () => {
+                    if (ticking) return;
+                    ticking = true;
+                    window.requestAnimationFrame(updateActiveCategory);
+                }, { passive: true });
+            },
+            centerChip(value) {
+                const bar = this.$refs.chipBar;
+                const chip = document.getElementById('chip-' + value);
+                if (!bar || !chip) return;
+
+                // Scroll only the chip strip itself (never scrollIntoView here —
+                // it drags the whole page's scroll position too when the strip
+                // is inside a position:sticky ancestor).
+                bar.scrollTo({
+                    left: chip.offsetLeft - (bar.clientWidth / 2) + (chip.clientWidth / 2),
+                    behavior: 'smooth',
+                });
+            },
             addItem(item) {
                 const existing = this.cart.find(line => line.id === item.id);
                 if (existing) {
@@ -33,11 +88,45 @@
                 return this.cart.length === 0;
             }
         }"
+        x-init="
+            $nextTick(() => watchCategoryScroll());
+            $watch('selectedCategory', (value) => centerChip(value));
+        "
     >
         <form method="POST" action="{{ route('customer.orders.store', $space) }}">
             @csrf
+            @if ($customerName)
+                <input type="hidden" name="customer_name" value="{{ $customerName }}">
+            @endif
 
-            <div class="px-4 py-6 pb-8 max-w-5xl mx-auto space-y-8" :class="!isEmpty ? 'pb-28' : ''">
+            @if ($customerName)
+                <p class="px-4 pt-3 text-sm text-[#8A7B6D] max-w-5xl mx-auto">{{ __('Hi :name! Here\'s the menu — add whatever you like.', ['name' => $customerName]) }}</p>
+            @endif
+
+            @if ($categories->isNotEmpty())
+                <div class="sticky top-16 z-30 bg-[#F7F0E3]/95 backdrop-blur-sm border-b border-[#E5DDD0]">
+                    <div x-ref="chipBar" class="max-w-5xl mx-auto px-4 py-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                        <button type="button"
+                                id="chip-all"
+                                @click="selectCategory('all')"
+                                :class="selectedCategory === 'all' ? 'bg-[#8A3330] text-white border-[#8A3330]' : 'bg-white text-gray-600 border-[#E5DDD0] hover:border-[#8A3330]'"
+                                class="shrink-0 whitespace-nowrap text-sm font-medium px-3.5 py-1.5 rounded-full border transition-colors">
+                            {{ __('All') }}
+                        </button>
+                        @foreach ($categories as $category)
+                            <button type="button"
+                                    id="chip-{{ $category->id }}"
+                                    @click="selectCategory({{ $category->id }})"
+                                    :class="selectedCategory === {{ $category->id }} ? 'bg-[#8A3330] text-white border-[#8A3330]' : 'bg-white text-gray-600 border-[#E5DDD0] hover:border-[#8A3330]'"
+                                    class="shrink-0 whitespace-nowrap text-sm font-medium px-3.5 py-1.5 rounded-full border transition-colors">
+                                {{ $category->name }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <div x-ref="menuTop" class="px-4 py-6 pb-8 max-w-5xl mx-auto space-y-8 scroll-mt-32" :class="!isEmpty ? 'pb-28' : ''">
                 @if ($categories->isEmpty())
                     <x-empty-state
                         :title="__('Nothing on the menu right now')"
@@ -45,7 +134,7 @@
                     />
                 @else
                     @foreach ($categories as $category)
-                        <div>
+                        <div id="category-{{ $category->id }}" data-category-id="{{ $category->id }}" class="scroll-mt-32">
                             <div class="flex items-center gap-2.5 mb-3">
                                 <span class="h-5 w-1 rounded-full bg-[#8A3330]"></span>
                                 <h3 class="font-semibold text-gray-900">{{ $category->name }}</h3>

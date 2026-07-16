@@ -20,13 +20,19 @@
                         {{ $order->order_type->label() }}
                     @endif
                 </p>
+                @if ($order->customer_name)
+                    <p class="text-xs text-[#8A3330] font-medium truncate">{{ __('Ordered by') }}: {{ $order->customer_name }}</p>
+                @endif
             </div>
             <div
                 x-data="{
                     start: new Date('{{ $order->created_at->toIso8601String() }}').getTime(),
                     now: Date.now(),
                 }"
-                x-init="setInterval(() => now = Date.now(), 1000)"
+                x-init="
+                    const timer = setInterval(() => now = Date.now(), 1000);
+                    turboCleanup(() => clearInterval(timer));
+                "
                 class="text-sm font-semibold text-gray-400 shrink-0"
                 x-text="(() => {
                     const diff = Math.max(0, Math.floor((now - start) / 1000));

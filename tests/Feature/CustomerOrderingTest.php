@@ -134,6 +134,49 @@ class CustomerOrderingTest extends TestCase
         Event::assertDispatched(CustomerOrderStatusUpdated::class, fn ($event) => $event->order->is($order));
     }
 
+    public function test_receipt_page_404s_until_the_order_is_marked_as_paid(): void
+    {
+        $order = $this->createOrder();
+        $staff = User::factory()->create(['role' => UserRole::Superadmin, 'is_active' => true]);
+
+        $this->get("/order/receipt/{$order->public_token}")->assertNotFound();
+
+        $this->actingAs($staff)->patch("/orders/{$order->id}/mark-as-paid", [
+            'payment_method' => 'cash',
+            'amount_received' => $order->total_amount,
+        ]);
+
+        $response = $this->get("/order/receipt/{$order->public_token}");
+
+        $response->assertOk()->assertViewIs('customer.receipt')
+            ->assertSee($order->fresh()->receipt_number)
+            ->assertSee($order->orderNumber())
+            ->assertSee('Cash');
+
+        $this->get('/order/receipt/not-a-real-token')->assertNotFound();
+    }
+
+    public function test_marking_as_paid_and_voiding_both_dispatch_the_customer_broadcast(): void
+    {
+        Event::fake([CustomerOrderStatusUpdated::class]);
+
+        $order = $this->createOrder();
+        $staff = User::factory()->create(['role' => UserRole::Superadmin, 'is_active' => true]);
+
+        $this->actingAs($staff)->patch("/orders/{$order->id}/mark-as-paid", [
+            'payment_method' => 'cash',
+            'amount_received' => $order->total_amount,
+        ]);
+
+        Event::assertDispatched(CustomerOrderStatusUpdated::class, fn ($event) => $event->order->is($order));
+
+        $this->actingAs($staff)->patch("/orders/{$order->id}/void-payment", [
+            'void_reason' => 'Test void',
+        ]);
+
+        Event::assertDispatched(CustomerOrderStatusUpdated::class, 2);
+    }
+
     public function test_staff_order_creation_still_works_after_the_order_creator_extraction(): void
     {
         $staff = User::factory()->create(['role' => UserRole::Superadmin, 'is_active' => true]);

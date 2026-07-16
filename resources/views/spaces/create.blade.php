@@ -9,7 +9,6 @@
 
     <div
         x-data="{
-            mode: 'single',
             prefix: '{{ $suggestedName }}',
             start: 1,
             count: 5,
@@ -26,48 +25,7 @@
     >
         <div class="flex-1 w-full">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-
-                {{-- Tabs --}}
-                <div class="flex gap-2 mb-6 border-b border-[#E5DDD0]">
-                    <button type="button" @click="mode = 'single'"
-                            :class="mode === 'single' ? 'border-[#8A3330] text-[#8A3330]' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                            class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition">
-                        {{ __('Single Space') }}
-                    </button>
-                    <button type="button" @click="mode = 'bulk'"
-                            :class="mode === 'bulk' ? 'border-[#8A3330] text-[#8A3330]' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                            class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition">
-                        {{ __('Multiple Spaces') }}
-                    </button>
-                </div>
-
-                {{-- Single space form --}}
-                <form x-show="mode === 'single'" method="POST" action="{{ route('spaces.store') }}">
-                    @csrf
-                    <input type="hidden" name="category_id" value="{{ $category->id }}">
-
-                    <div>
-                        <x-input-label for="name" :value="__('Space Name')" />
-                        <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" placeholder="{{ __('e.g. :name 1', ['name' => $suggestedName]) }}" required autofocus />
-                        <x-input-error :messages="$errors->get('name')" class="mt-2" />
-                    </div>
-
-                    <div class="mt-5">
-                        <x-input-label for="capacity" :value="__('Capacity (optional)')" />
-                        <x-text-input id="capacity" name="capacity" type="number" min="1" class="block mt-1 w-full" :value="old('capacity', $category->capacity)" />
-                        <x-input-error :messages="$errors->get('capacity')" class="mt-2" />
-                    </div>
-
-                    <p class="mt-3 text-sm text-gray-500">{{ __('New spaces start as Available. A QR code is generated automatically.') }}</p>
-
-                    <div class="flex items-center justify-end mt-8 space-x-3 border-t border-[#E5DDD0] pt-6">
-                        <a href="{{ route('spaces.index', ['area' => $category->area_id]) }}" class="text-sm text-gray-600 hover:text-gray-900">{{ __('Cancel') }}</a>
-                        <x-primary-button>{{ __('Create Space') }}</x-primary-button>
-                    </div>
-                </form>
-
-                {{-- Bulk space form --}}
-                <form x-show="mode === 'bulk'" method="POST" action="{{ route('spaces.store-bulk') }}">
+                <form method="POST" action="{{ route('spaces.store-bulk') }}">
                     @csrf
                     <input type="hidden" name="category_id" value="{{ $category->id }}">
 
@@ -104,38 +62,14 @@
         {{-- Side panel --}}
         <div class="w-full lg:w-80 shrink-0">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-6">
-                <template x-if="mode === 'bulk'">
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8A7B9E] mb-4">{{ __('Preview') }}</h3>
-                        <ul class="space-y-2">
-                            <template x-for="name in preview.names" :key="name">
-                                <li class="text-sm text-gray-700 border border-dashed border-[#D9CCBA] rounded-lg px-3 py-2 bg-[#FAF6EE]" x-text="name"></li>
-                            </template>
-                        </ul>
-                        <p x-show="preview.remaining > 0" class="mt-2 text-xs text-gray-400" x-text="'+ ' + preview.remaining + ' {{ __('more') }}'"></p>
-                        <p x-show="preview.names.length === 0" class="text-sm text-gray-400">{{ __('Enter details to preview the space names.') }}</p>
-                    </div>
-                </template>
-
-                <template x-if="mode === 'single'">
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8A7B9E] mb-4">{{ __('Tips') }}</h3>
-                        <ul class="space-y-3 text-sm text-gray-600">
-                            <li class="flex gap-2">
-                                <span class="text-[#8A3330]">&bull;</span>
-                                {{ __('Space names must be unique.') }}
-                            </li>
-                            <li class="flex gap-2">
-                                <span class="text-[#8A3330]">&bull;</span>
-                                {{ __('Adding several spaces at once? Switch to "Multiple Spaces" above.') }}
-                            </li>
-                            <li class="flex gap-2">
-                                <span class="text-[#8A3330]">&bull;</span>
-                                {{ __('Each space gets its own printable QR code automatically.') }}
-                            </li>
-                        </ul>
-                    </div>
-                </template>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8A7B9E] mb-4">{{ __('Preview') }}</h3>
+                <ul class="space-y-2">
+                    <template x-for="name in preview.names" :key="name">
+                        <li class="text-sm text-gray-700 border border-dashed border-[#D9CCBA] rounded-lg px-3 py-2 bg-[#FAF6EE]" x-text="name"></li>
+                    </template>
+                </ul>
+                <p x-show="preview.remaining > 0" class="mt-2 text-xs text-gray-400" x-text="'+ ' + preview.remaining + ' {{ __('more') }}'"></p>
+                <p x-show="preview.names.length === 0" class="text-sm text-gray-400">{{ __('Enter details to preview the space names.') }}</p>
             </div>
         </div>
     </div>

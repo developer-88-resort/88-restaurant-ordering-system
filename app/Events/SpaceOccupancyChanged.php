@@ -12,8 +12,14 @@ class SpaceOccupancyChanged implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets;
 
-    public function __construct(public string $message)
-    {
+    /**
+     * @param  array<int, int>  $spaceIds
+     */
+    public function __construct(
+        public string $message,
+        public array $spaceIds,
+        public string $status,
+    ) {
         //
     }
 
@@ -37,6 +43,10 @@ class SpaceOccupancyChanged implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
-        return ['message' => $this->message];
+        return [
+            'message' => $this->message,
+            'space_ids' => $this->spaceIds,
+            'status' => $this->status,
+        ];
     }
 }

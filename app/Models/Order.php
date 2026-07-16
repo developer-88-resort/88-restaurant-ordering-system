@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\LogsAuditActivity;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,6 @@ class Order extends Model
     protected $fillable = [
         'order_number',
         'order_type',
-        'table_id',
         'area_id',
         'space_category_id',
         'space_id',
@@ -28,7 +28,9 @@ class Order extends Model
         'status',
         'payment_status',
         'payment_method',
+        'payment_reference',
         'receipt_number',
+        'current_invoice_snapshot_id',
         'amount_received',
         'change_amount',
         'voided_by',
@@ -36,6 +38,8 @@ class Order extends Model
         'void_reason',
         'total_amount',
         'notes',
+        'customer_name',
+        'covers_count',
         'paid_at',
     ];
 
@@ -45,6 +49,7 @@ class Order extends Model
             'order_type' => OrderType::class,
             'status' => OrderStatus::class,
             'payment_status' => PaymentStatus::class,
+            'payment_method' => PaymentMethod::class,
             'total_amount' => 'decimal:2',
             'amount_received' => 'decimal:2',
             'change_amount' => 'decimal:2',
@@ -58,11 +63,6 @@ class Order extends Model
         static::creating(function (Order $order) {
             $order->public_token ??= Str::random(32);
         });
-    }
-
-    public function table(): BelongsTo
-    {
-        return $this->belongsTo(RestaurantTable::class, 'table_id');
     }
 
     public function area(): BelongsTo
@@ -92,7 +92,7 @@ class Order extends Model
         }
 
         if (! $this->area || ! $this->spaceCategory) {
-            return $this->table->table_number ?? 'Unknown';
+            return 'Unknown';
         }
 
         return $this->area->name.' - '.($this->space->name ?? $this->spaceCategory->name);
@@ -111,6 +111,26 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Every invoice ever issued for this order, including ones later
+     * voided — permanent record, never mutated or deleted.
+     */
+    public function invoiceSnapshots(): HasMany
+    {
+        return $this->hasMany(OrderInvoiceSnapshot::class);
+    }
+
+    /**
+     * The currently-active invoice (or the most recent one, if voided and
+     * not yet repaid) for display — set atomically at finalize-payment
+     * time via `current_invoice_snapshot_id`, so this is a direct indexed
+     * lookup rather than string-matching against receipt_number.
+     */
+    public function currentInvoiceSnapshot(): BelongsTo
+    {
+        return $this->belongsTo(OrderInvoiceSnapshot::class, 'current_invoice_snapshot_id');
     }
 
     /**
@@ -148,6 +168,14 @@ class Order extends Model
 
         if ($this->wasChanged('payment_status')) {
             $parts[] = "payment marked as {$this->payment_status->label()}";
+
+            if ($this->payment_status === PaymentStatus::Paid && $this->currentInvoiceSnapshot?->discount_type) {
+                $parts[] = "{$this->currentInvoiceSnapshot->discount_type->label()} discount applied (₱{$this->currentInvoiceSnapshot->discount_amount})";
+            }
+
+            if ($this->payment_status === PaymentStatus::Voided && $this->receipt_number) {
+                $parts[] = "invoice {$this->receipt_number} voided";
+            }
         }
 
         if ($parts !== []) {

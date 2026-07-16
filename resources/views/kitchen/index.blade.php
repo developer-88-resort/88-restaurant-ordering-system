@@ -3,10 +3,19 @@
         <div class="flex items-center justify-between"
              x-data="{ connected: false }"
              x-init="
+                const onConnected = () => connected = true;
+                const onDisconnected = () => connected = false;
+                const onUnavailable = () => connected = false;
                 Echo.private('kitchen').listen('.KitchenUpdated', () => window.location.reload());
-                Echo.connector.pusher.connection.bind('connected', () => connected = true);
-                Echo.connector.pusher.connection.bind('disconnected', () => connected = false);
-                Echo.connector.pusher.connection.bind('unavailable', () => connected = false);
+                Echo.connector.pusher.connection.bind('connected', onConnected);
+                Echo.connector.pusher.connection.bind('disconnected', onDisconnected);
+                Echo.connector.pusher.connection.bind('unavailable', onUnavailable);
+                turboCleanup(() => {
+                    Echo.leave('kitchen');
+                    Echo.connector.pusher.connection.unbind('connected', onConnected);
+                    Echo.connector.pusher.connection.unbind('disconnected', onDisconnected);
+                    Echo.connector.pusher.connection.unbind('unavailable', onUnavailable);
+                });
              ">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center gap-2">
@@ -21,7 +30,10 @@
         </div>
     </x-slot>
 
-    <div x-data x-init="setInterval(() => window.location.reload(), 60000)" class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div x-data x-init="
+        const timer = setInterval(() => window.location.reload(), 60000);
+        turboCleanup(() => clearInterval(timer));
+    " class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {{-- New Orders --}}
         <div>
             <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-amber-400">

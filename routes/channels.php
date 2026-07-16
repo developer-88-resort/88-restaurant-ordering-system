@@ -14,3 +14,7 @@ Broadcast::channel('audit-logs', function ($user) {
 Broadcast::channel('spaces', function ($user) {
     return in_array($user->role, [UserRole::Superadmin, UserRole::Admin, UserRole::Staff], true);
 });
+
+Broadcast::channel('staff-alerts', function ($user) {
+    return in_array($user->role, [UserRole::Superadmin, UserRole::Admin, UserRole::Staff], true);
+});

@@ -24,6 +24,7 @@ class MenuCategoryController extends Controller
     {
         return view('menu-categories.create', [
             'existingCategories' => MenuCategory::orderBy('sort_order')->orderBy('name')->get(),
+            'nextSortOrder' => MenuCategory::max('sort_order') + 1,
         ]);
     }
 
