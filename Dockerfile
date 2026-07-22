@@ -39,8 +39,14 @@ ENV VITE_APP_NAME=$VITE_APP_NAME \
 
 RUN npm ci && npm run build && rm -rf node_modules
 
+# Plain `mkdir -p dir/{a,b,c}` brace expansion is a bash-ism — Docker's RUN
+# uses /bin/sh (dash) by default, which takes it literally and creates one
+# oddly-named directory instead of three, silently leaving
+# storage/framework/views missing (hence Laravel's view.compiled config,
+# which is realpath(storage_path('framework/views')), resolving to false —
+# "View path not found" on every view:cache/view:clear and page render).
 RUN chmod +x railway-start.sh \
-    && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8080
