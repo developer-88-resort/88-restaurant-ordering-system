@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AreaController;
-use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\CustomerWelcomeController;
 use App\Http\Controllers\KitchenController;
@@ -160,9 +159,23 @@ require __DIR__.'/auth.php';
 // redeploy) right after using it once.
 Route::get('/render-test-setup-b601bb28154e9163bae1203fc983fedc', function () {
     try {
-        Artisan::call('db:seed', ['--force' => true]);
+        // Not using the DatabaseSeeder/factory here — factories need
+        // fakerphp/faker, a dev-only dependency this production build
+        // (composer install --no-dev) doesn't include.
+        if (\App\Models\User::where('email', 'dev@88hotspring.com')->exists()) {
+            return response('Already seeded.', 200, ['Content-Type' => 'text/plain']);
+        }
 
-        return response('Seeded. '.Artisan::output(), 200, ['Content-Type' => 'text/plain']);
+        \App\Models\User::create([
+            'name' => 'Superadmin',
+            'email' => 'dev@88hotspring.com',
+            'password' => 'password',
+            'role' => \App\Enums\UserRole::Superadmin,
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        return response('Seeded.', 200, ['Content-Type' => 'text/plain']);
     } catch (\Throwable $e) {
         return response(
             $e->getMessage()."\n\n".$e->getFile().':'.$e->getLine()."\n\n".$e->getTraceAsString(),
