@@ -1,33 +1,59 @@
-# 88 Hotspring Resort Inc. — Restaurant Ordering System
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-A web-based ordering system built for **88 Hotspring Resort Inc.**, covering dine-in table ordering, takeout, kitchen order tracking, and restaurant management from a single application.
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-## About
+## About Laravel
 
-Guests order by scanning a QR code at their table (or through a takeout flow), and staff manage the whole order lifecycle — from the kitchen display to payment and receipts — through role-based Superadmin, Admin, and Staff dashboards.
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-## Features
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-- **Customer ordering** — per-table QR code ordering and a Takeout flow, with menu items, variants, and modifier options
-- **Kitchen display** — live order tracking for the kitchen staff
-- **Order management** — order status updates, payment tracking, and printable/PDF receipts
-- **Menu management** — categories, items, variants, and modifier groups
-- **Spaces & areas** — table/space management organized by area, with QR code generation and printing
-- **Role-based access** — Superadmin, Admin, and Staff roles with different permissions
-- **Reports** — sales reporting with PDF export
-- **Real-time updates** — powered by Laravel Reverb (WebSockets)
-- **Draft auto-save** — in-progress form data is saved locally so nothing is lost on an accidental refresh
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-## Tech Stack
+## Learning Laravel
 
-- **Backend:** Laravel (PHP)
-- **Frontend:** Blade templates, Alpine.js, Tailwind CSS
-- **Database:** MySQL
-- **Real-time:** Laravel Reverb
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
 
-## Contact
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-**88 Hotspring Resort Inc.**
-#9061 National Highway, Bagong Kalsada, Calamba City, 4027 Laguna
-📞 0917-874-7888
-✉️ info@88hotspring.com
+## Laravel Sponsors
+
+We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+
+### Premium Partners
+
+- **[Vehikl](https://vehikl.com)**
+- **[Tighten Co.](https://tighten.co)**
+- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
+- **[64 Robots](https://64robots.com)**
+- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
+- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
+- **[Redberry](https://redberry.international/laravel-development)**
+- **[Active Logic](https://activelogic.com)**
+
+## Contributing
+
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+
+## Code of Conduct
+
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+
+## License
+
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
