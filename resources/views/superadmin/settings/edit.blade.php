@@ -23,7 +23,7 @@
         {{-- Settings form — one form, one card, internal section dividers --}}
         <div class="lg:col-span-2 w-full">
             <div class="bg-white border border-[#E5DDD0] rounded-xl">
-                <form method="POST" action="{{ route('superadmin.settings.update') }}" @submit="saving = true">
+                <form method="POST" action="{{ route('superadmin.settings.update') }}" @submit="saving = true" data-draft-key="superadmin-settings-edit">
                     @csrf
                     @method('PUT')
 
@@ -326,8 +326,16 @@
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-6 sm:p-8 mt-6">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F3E1DC]">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#8A3330" class="h-5 w-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zm0 10.5h4.5v4.5h-4.5v-4.5zm10.5-10.5h4.5v4.5h-4.5v-4.5zm1.5 7.5h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm-3 0h.008v.008h-.008v-.008zm3 3h.008v.008h-.008v-.008zm-3 0h.008v.008h-.008v-.008zm-3-3h.008v.008h-.008v-.008z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-5 w-5">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="#8A3330" stroke-width="1.5" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="#8A3330" stroke-width="1.5" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="#8A3330" stroke-width="1.5" />
+                            <rect x="5.5" y="5.5" width="2" height="2" fill="#8A3330" />
+                            <rect x="16.5" y="5.5" width="2" height="2" fill="#8A3330" />
+                            <rect x="5.5" y="16.5" width="2" height="2" fill="#8A3330" />
+                            <rect x="14" y="14" width="3" height="3" fill="#8A3330" />
+                            <rect x="18" y="14" width="3" height="3" fill="#8A3330" />
+                            <rect x="14" y="18" width="3" height="3" fill="#8A3330" />
                         </svg>
                     </div>
                     <h3 class="text-sm font-semibold uppercase tracking-wider text-[#8A7B9E]">{{ __('Welcome QR Code') }}</h3>

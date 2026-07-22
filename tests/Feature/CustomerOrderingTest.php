@@ -39,7 +39,7 @@ class CustomerOrderingTest extends TestCase
         $this->space = Space::create(['area_id' => $this->area->id, 'category_id' => $this->category->id, 'name' => 'Table 1', 'status' => SpaceStatus::Available, 'sort_order' => 1]);
 
         $menuCategory = MenuCategory::create(['name' => 'Mains', 'sort_order' => 1, 'is_active' => true]);
-        $this->item = MenuItem::create(['menu_category_id' => $menuCategory->id, 'name' => 'Samgyupsal', 'price' => 350, 'is_available' => true]);
+        $this->item = MenuItem::create(['menu_category_id' => $menuCategory->id, 'name' => 'Samgyupsal', 'price' => 350]);
     }
 
     public function test_available_space_serves_the_menu(): void
@@ -101,7 +101,7 @@ class CustomerOrderingTest extends TestCase
 
     public function test_submitting_an_unavailable_menu_item_fails_validation_and_creates_no_order(): void
     {
-        $this->item->update(['is_available' => false]);
+        $this->item->update(['availability_status' => 'out_of_stock']);
 
         $response = $this->post("/order/{$this->space->qr_token}", [
             'items' => [['menu_item_id' => $this->item->id, 'quantity' => 1]],

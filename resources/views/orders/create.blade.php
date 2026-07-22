@@ -15,6 +15,8 @@
         </div>
     @else
         <form method="POST" action="{{ route('orders.store') }}"
+              data-draft-key="orders-create"
+              x-persist="{ key: 'orders-create-cart', paths: ['cart'] }"
               x-data="{
                   cart: [],
                   eachLabel: @js(__('each')),
@@ -45,22 +47,34 @@
                       return area + ' - ' + (spot ?? '');
                   },
                   addItem(item) {
-                      const existing = this.cart.find(line => line.id === item.id);
+                      const variantId = item.variantId ?? null;
+                      const existing = this.cart.find(line => line.id === item.id && line.variantId === variantId);
                       if (existing) {
                           existing.qty++;
                       } else {
-                          this.cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+                          this.cart.push({ id: item.id, variantId, name: item.name, price: item.price, qty: 1 });
                       }
                   },
-                  increment(id) {
-                      const line = this.cart.find(line => line.id === id);
-                      if (line) line.qty++;
+                  variantPickerItem: null,
+                  openVariantPicker(item) {
+                      this.variantPickerItem = item;
                   },
-                  decrement(id) {
-                      const line = this.cart.find(line => line.id === id);
-                      if (!line) return;
-                      line.qty--;
-                      if (line.qty <= 0) this.cart = this.cart.filter(l => l.id !== id);
+                  closeVariantPicker() {
+                      this.variantPickerItem = null;
+                  },
+                  chooseVariant(variant) {
+                      const item = this.variantPickerItem;
+                      if (!item) return;
+                      this.addItem({ id: item.id, variantId: variant.id, name: item.name + ' — ' + variant.name, price: variant.price });
+                      this.closeVariantPicker();
+                  },
+                  increment(index) {
+                      if (this.cart[index]) this.cart[index].qty++;
+                  },
+                  decrement(index) {
+                      if (!this.cart[index]) return;
+                      this.cart[index].qty--;
+                      if (this.cart[index].qty <= 0) this.cart.splice(index, 1);
                   },
                   get total() {
                       return this.cart.reduce((sum, line) => sum + (line.price * line.qty), 0);
@@ -200,12 +214,26 @@
                                     <h3 class="font-semibold text-gray-900 mb-4">{{ $category->name }}</h3>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         @foreach ($category->menuItems as $item)
-                                            <button type="button"
-                                                    @click="addItem({ id: {{ $item->id }}, name: {{ Js::from($item->name) }}, price: {{ $item->price }} })"
-                                                    class="flex items-center justify-between gap-3 text-left border border-[#E5DDD0] rounded-lg px-4 py-3 hover:border-[#8A3330] hover:bg-[#FAF6EE] transition">
-                                                <span class="text-sm font-medium text-gray-900">{{ $item->name }}</span>
-                                                <span class="text-sm font-semibold text-[#8A3330] shrink-0">₱{{ number_format($item->price, 2) }}</span>
-                                            </button>
+                                            @if ($item->hasVariants())
+                                                <button type="button"
+                                                        @click="openVariantPicker({ id: {{ $item->id }}, name: {{ Js::from($item->name) }}, variants: {{ Js::from($item->variants->map(fn ($variant) => [
+                                                            'id' => $variant->id,
+                                                            'name' => $variant->name,
+                                                            'price' => (float) $variant->price,
+                                                            'imageUrl' => $variant->imageUrl(),
+                                                        ])) }} })"
+                                                        class="flex items-center justify-between gap-3 text-left border border-[#E5DDD0] rounded-lg px-4 py-3 hover:border-[#8A3330] hover:bg-[#FAF6EE] transition">
+                                                    <span class="text-sm font-medium text-gray-900">{{ $item->name }}</span>
+                                                    <span class="text-xs font-semibold text-[#8A7B9E] shrink-0">{{ $item->priceRangeLabel() }}</span>
+                                                </button>
+                                            @else
+                                                <button type="button"
+                                                        @click="addItem({ id: {{ $item->id }}, name: {{ Js::from($item->name) }}, price: {{ $item->price }} })"
+                                                        class="flex items-center justify-between gap-3 text-left border border-[#E5DDD0] rounded-lg px-4 py-3 hover:border-[#8A3330] hover:bg-[#FAF6EE] transition">
+                                                    <span class="text-sm font-medium text-gray-900">{{ $item->name }}</span>
+                                                    <span class="text-sm font-semibold text-[#8A3330] shrink-0">₱{{ number_format($item->price, 2) }}</span>
+                                                </button>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </div>
@@ -220,7 +248,7 @@
                         <h3 class="font-semibold text-gray-900">{{ __('Order Summary') }}</h3>
 
                         <div class="mt-4 space-y-3" x-show="!isEmpty">
-                            <template x-for="(line, index) in cart" :key="line.id">
+                            <template x-for="(line, index) in cart" :key="index">
                                 <div>
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="min-w-0">
@@ -228,12 +256,13 @@
                                             <p class="text-xs text-gray-500" x-text="'₱' + line.price.toFixed(2) + ' ' + eachLabel"></p>
                                         </div>
                                         <div class="flex items-center gap-2 shrink-0">
-                                            <button type="button" @click="decrement(line.id)" class="h-7 w-7 rounded-full border border-[#D9CCBA] text-gray-600 hover:bg-gray-50">−</button>
+                                            <button type="button" @click="decrement(index)" class="h-7 w-7 rounded-full border border-[#D9CCBA] text-gray-600 hover:bg-gray-50">−</button>
                                             <span class="w-5 text-center text-sm font-medium" x-text="line.qty"></span>
-                                            <button type="button" @click="increment(line.id)" class="h-7 w-7 rounded-full border border-[#D9CCBA] text-gray-600 hover:bg-gray-50">+</button>
+                                            <button type="button" @click="increment(index)" class="h-7 w-7 rounded-full border border-[#D9CCBA] text-gray-600 hover:bg-gray-50">+</button>
                                         </div>
                                     </div>
                                     <input type="hidden" :name="'items[' + index + '][menu_item_id]'" :value="line.id">
+                                    <input type="hidden" :name="'items[' + index + '][menu_item_variant_id]'" :value="line.variantId">
                                     <input type="hidden" :name="'items[' + index + '][quantity]'" :value="line.qty">
                                 </div>
                             </template>
@@ -264,6 +293,8 @@
                     </div>
                 </div>
             </div>
+
+            <x-menu.variant-picker-modal />
         </form>
     @endif
 </x-app-layout>

@@ -162,12 +162,12 @@
         @endif
 
         <div class="mt-4 pt-4 border-t border-dashed border-[#D9CCBA] space-y-1">
-            <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Payment Method') }}</span><span>{{ $order->payment_method?->label() }}</span></div>
-            @if ($order->payment_reference)
-                <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Reference No.') }}</span><span>{{ $order->payment_reference }}</span></div>
+            <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Payment Method') }}</span><span>{{ $invoice->payment_method?->label() }}</span></div>
+            @if ($invoice->payment_reference)
+                <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Reference No.') }}</span><span>{{ $invoice->payment_reference }}</span></div>
             @endif
-            <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Amount Received') }}</span><span>{{ number_format($order->amount_received, 2) }}</span></div>
-            <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Change Due') }}</span><span>{{ number_format($order->change_amount, 2) }}</span></div>
+            <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Amount Received') }}</span><span>{{ number_format($invoice->amount_received, 2) }}</span></div>
+            <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Change Due') }}</span><span>{{ number_format($invoice->change_amount, 2) }}</span></div>
             <div class="flex justify-between text-xs text-gray-500"><span>{{ __('Payment Status') }}</span><span>{{ $order->payment_status->label() }}</span></div>
         </div>
 

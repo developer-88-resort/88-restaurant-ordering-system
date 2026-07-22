@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Concerns\LogsAuditActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MenuCategory extends Model
 {
-    use LogsAuditActivity;
+    use LogsAuditActivity, SoftDeletes;
 
     protected $fillable = [
         'name',

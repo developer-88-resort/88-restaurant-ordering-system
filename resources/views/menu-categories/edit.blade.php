@@ -8,7 +8,7 @@
     <div class="flex flex-col lg:flex-row gap-6 items-start">
         <div class="flex-1 max-w-2xl w-full">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-                <form method="POST" action="{{ route('menu-categories.update', $category) }}">
+                <form method="POST" action="{{ route('menu-categories.update', $category) }}" data-draft-key="menu-category-edit-{{ $category->id }}">
                     @csrf
                     @method('PUT')
 

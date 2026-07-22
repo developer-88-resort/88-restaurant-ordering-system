@@ -7,7 +7,7 @@
 
     <div class="max-w-3xl space-y-6">
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-            <form method="POST" action="{{ route('superadmin.users.update', $user) }}">
+            <form method="POST" action="{{ route('superadmin.users.update', $user) }}" data-draft-key="superadmin-user-edit-{{ $user->id }}">
                 @csrf
                 @method('PUT')
 

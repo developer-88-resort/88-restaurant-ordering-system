@@ -58,7 +58,7 @@ class OrderController extends Controller
     public function create(): View
     {
         $menuCategories = MenuCategory::where('is_active', true)
-            ->with(['menuItems' => fn ($query) => $query->where('is_available', true)->orderBy('name')])
+            ->with(['menuItems' => fn ($query) => $query->with('variants')->whereIn('availability_status', ['available', 'seasonal'])->orderBy('sort_order')->orderBy('name')])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -320,6 +320,10 @@ class OrderController extends Controller
                 'buyer_address' => $data['buyer_address'] ?? null,
                 'rounding_adjustment' => $breakdown['rounding_adjustment'],
                 'total_amount_due' => $breakdown['total_amount_due'],
+                'payment_method' => $data['payment_method'],
+                'payment_reference' => $data['payment_reference'] ?? null,
+                'amount_received' => $amountReceived,
+                'change_amount' => bcsub($amountReceived, $breakdown['total_amount_due'], 2),
                 'computed_by' => auth()->id(),
                 'computed_at' => now(),
             ]);

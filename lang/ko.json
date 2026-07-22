@@ -1,5 +1,5 @@
 {
-    "SuperAdmin Portal": "슈퍼관리자 포털",
+    "Management Portal": "관리 포털",
     "Email": "이메일",
     "Password": "비밀번호",
     "Sign in": "로그인",
@@ -290,6 +290,12 @@
     "Notes (optional)": "메모 (선택)",
     "Select a location above before placing the order.": "주문하기 전에 위에서 위치를 선택하세요.",
     "Place Order": "주문하기",
+    "Confirm Your Order": "주문 확인",
+    "Please review before sending to the kitchen.": "주방으로 보내기 전에 확인해 주세요.",
+    "Notes": "메모",
+    "Edit Order": "주문 수정",
+    "Confirm & Place": "확인 후 주문하기",
+    "Placing Order...": "주문 처리 중...",
     "Order created successfully.": "주문이 생성되었습니다.",
     "Nothing on the menu right now": "현재 메뉴에 항목이 없습니다",
     "Please ask our staff for assistance with your order.": "주문과 관련하여 저희 직원에게 문의해 주세요.",
@@ -505,6 +511,7 @@
 
     "Unpaid": "미결제",
     "Paid": "결제 완료",
+    "Payment received. Thank you!": "결제가 완료되었습니다. 감사합니다!",
     "Pending": "대기 중",
     "Preparing": "조리 중",
     "Served": "서빙 완료",
@@ -541,5 +548,9 @@
     "On the way!": "직원이 가고 있습니다!",
     "A staff member has been notified and will come to assist you shortly.": "직원에게 알림이 전송되었으며 곧 도와드리러 갈 것입니다.",
     "Back to Start": "처음으로 돌아가기",
-    "Not Available": "이용 불가"
+    "Not Available": "이용 불가",
+    "Added to your order": "주문에 추가됨",
+    "Dismiss": "닫기",
+    "Hide password": "비밀번호 숨기기",
+    "Show password": "비밀번호 표시"
 }

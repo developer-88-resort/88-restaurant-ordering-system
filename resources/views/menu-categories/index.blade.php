@@ -15,12 +15,25 @@
         </div>
     </x-slot>
 
+    <div class="mb-4 flex justify-end">
+        <span class="inline-flex rounded-full border border-[#E5DDD0] bg-white p-0.5">
+            <a href="{{ route('menu-categories.index') }}"
+               class="px-3 py-1 rounded-full text-xs font-semibold transition {{ ! $showArchived ? 'bg-[#8A3330] text-white' : 'text-gray-500 hover:text-gray-700' }}">
+                {{ __('Active') }}
+            </a>
+            <a href="{{ route('menu-categories.index', ['archived' => 1]) }}"
+               class="px-3 py-1 rounded-full text-xs font-semibold transition {{ $showArchived ? 'bg-[#8A3330] text-white' : 'text-gray-500 hover:text-gray-700' }}">
+                {{ __('Archived') }} ({{ $archivedCount }})
+            </a>
+        </span>
+    </div>
+
     @if ($categories->isEmpty())
         <x-empty-state
-            :title="__('No menu categories yet')"
-            :description="__('Create categories like Appetizers, Main Course, or Drinks to organize your menu items.')"
-            :actionLabel="__('New Category')"
-            :actionHref="route('menu-categories.create')"
+            :title="$showArchived ? __('No archived categories') : __('No menu categories yet')"
+            :description="$showArchived ? __('Categories you archive will show up here.') : __('Create categories like Appetizers, Main Course, or Drinks to organize your menu items.')"
+            :actionLabel="$showArchived ? null : __('New Category')"
+            :actionHref="$showArchived ? null : route('menu-categories.create')"
         />
     @else
         {{-- Desktop table --}}
@@ -43,28 +56,40 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $category->menu_items_count }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $category->sort_order }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <form action="{{ route('menu-categories.toggle-status', $category) }}" method="POST">
-                                        @csrf
-                                        @method('PATCH')
-                                        @if ($category->is_active)
-                                            <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-green-100 text-green-800 hover:bg-green-200">{{ __('Active') }}</button>
-                                        @else
-                                            <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">{{ __('Inactive') }}</button>
-                                        @endif
-                                    </form>
+                                    @if ($showArchived)
+                                        <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-slate-700 text-white">{{ __('Archived') }}</span>
+                                    @else
+                                        <form action="{{ route('menu-categories.toggle-status', $category) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            @if ($category->is_active)
+                                                <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-green-100 text-green-800 hover:bg-green-200">{{ __('Active') }}</button>
+                                            @else
+                                                <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">{{ __('Inactive') }}</button>
+                                            @endif
+                                        </form>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-3">
-                                    <a href="{{ route('menu-categories.edit', $category) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                                    <x-confirm-form
-                                        :action="route('menu-categories.destroy', $category)"
-                                        method="DELETE"
-                                        class="inline"
-                                        :title="__('Delete this category?')"
-                                        :message="__('This will permanently remove :name.', ['name' => $category->name])"
-                                        :confirm-label="__('Delete')"
-                                    >
-                                        <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                                    </x-confirm-form>
+                                    @if ($showArchived)
+                                        <form action="{{ route('menu-categories.restore', $category) }}" method="POST" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="text-green-700 hover:text-green-900">{{ __('Restore') }}</button>
+                                        </form>
+                                    @else
+                                        <a href="{{ route('menu-categories.edit', $category) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
+                                        <x-confirm-form
+                                            :action="route('menu-categories.destroy', $category)"
+                                            method="DELETE"
+                                            class="inline"
+                                            :title="__('Archive this category?')"
+                                            :message="__('You can restore :name later from the Archived tab.', ['name' => $category->name])"
+                                            :confirm-label="__('Archive')"
+                                        >
+                                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Archive') }}</button>
+                                        </x-confirm-form>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -85,28 +110,40 @@
                                 &middot; {{ __('Sort') }} {{ $category->sort_order }}
                             </p>
                         </div>
-                        <form action="{{ route('menu-categories.toggle-status', $category) }}" method="POST" class="shrink-0">
-                            @csrf
-                            @method('PATCH')
-                            @if ($category->is_active)
-                                <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-green-100 text-green-800 hover:bg-green-200">{{ __('Active') }}</button>
-                            @else
-                                <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">{{ __('Inactive') }}</button>
-                            @endif
-                        </form>
+                        @if ($showArchived)
+                            <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-slate-700 text-white shrink-0">{{ __('Archived') }}</span>
+                        @else
+                            <form action="{{ route('menu-categories.toggle-status', $category) }}" method="POST" class="shrink-0">
+                                @csrf
+                                @method('PATCH')
+                                @if ($category->is_active)
+                                    <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-green-100 text-green-800 hover:bg-green-200">{{ __('Active') }}</button>
+                                @else
+                                    <button type="submit" class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200">{{ __('Inactive') }}</button>
+                                @endif
+                            </form>
+                        @endif
                     </div>
 
                     <div class="mt-3 pt-3 border-t border-[#E5DDD0] flex items-center justify-end gap-4 text-sm">
-                        <a href="{{ route('menu-categories.edit', $category) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                        <x-confirm-form
-                            :action="route('menu-categories.destroy', $category)"
-                            method="DELETE"
-                            :title="__('Delete this category?')"
-                            :message="__('This will permanently remove :name.', ['name' => $category->name])"
-                            :confirm-label="__('Delete')"
-                        >
-                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                        </x-confirm-form>
+                        @if ($showArchived)
+                            <form action="{{ route('menu-categories.restore', $category) }}" method="POST">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="text-green-700 hover:text-green-900">{{ __('Restore') }}</button>
+                            </form>
+                        @else
+                            <a href="{{ route('menu-categories.edit', $category) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
+                            <x-confirm-form
+                                :action="route('menu-categories.destroy', $category)"
+                                method="DELETE"
+                                :title="__('Archive this category?')"
+                                :message="__('You can restore :name later from the Archived tab.', ['name' => $category->name])"
+                                :confirm-label="__('Archive')"
+                            >
+                                <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Archive') }}</button>
+                            </x-confirm-form>
+                        @endif
                     </div>
                 </div>
             @endforeach

@@ -132,4 +132,14 @@ class User extends Authenticatable
 
         return mb_strtoupper($initials) ?: '?';
     }
+
+    /**
+     * Where a signed-in user lands by default — used by the root "/" route
+     * and by every auth-flow redirect (password confirm, email verification)
+     * that falls back to a generic "home" destination.
+     */
+    public function homeRouteName(): string
+    {
+        return 'superadmin.dashboard';
+    }
 }

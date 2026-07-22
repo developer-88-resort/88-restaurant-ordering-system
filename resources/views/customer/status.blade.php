@@ -129,6 +129,9 @@
                     <div class="px-6 py-3 flex items-center justify-between gap-3">
                         <p class="text-sm font-medium text-gray-900">
                             <span class="font-semibold">{{ $item->quantity }}&times;</span> {{ $item->item_name }}
+                            @if ($item->notes)
+                                <span class="block text-xs text-gray-400 italic font-normal mt-0.5">{{ $item->notes }}</span>
+                            @endif
                         </p>
                         <span class="text-sm font-semibold text-gray-900 shrink-0">₱{{ number_format($item->subtotal, 2) }}</span>
                     </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MenuItemAvailability;
 use App\Enums\OrderType;
 use App\Events\KitchenUpdated;
 use App\Events\StaffAssistanceRequested;
@@ -113,10 +114,17 @@ class CustomerWelcomeController extends Controller
         return $request->string('name')->toString() ?: null;
     }
 
+    /**
+     * Out-of-stock items stay visible in their normal alphabetical slot
+     * (customers should see the full menu, not a shrinking or reshuffling
+     * one) — the view marks them "Out of Stock" and blocks adding them.
+     */
     protected function activeMenu(): Collection
     {
         return MenuCategory::where('is_active', true)
-            ->with(['menuItems' => fn ($query) => $query->where('is_available', true)->orderBy('name')])
+            ->with(['menuItems' => fn ($query) => $query->with(['images', 'variants'])
+                ->where('availability_status', '!=', MenuItemAvailability::Hidden->value)
+                ->orderBy('sort_order')->orderBy('name')])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()

@@ -69,7 +69,7 @@ class SampleMenuSeeder extends Seeder
         foreach ($items as [$itemName, $price]) {
             $category->menuItems()->firstOrCreate(
                 ['name' => $itemName],
-                ['price' => $price, 'is_available' => true]
+                ['price' => $price]
             );
         }
     }

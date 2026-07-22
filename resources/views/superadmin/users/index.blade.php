@@ -36,10 +36,15 @@
                         @foreach ($users as $user)
                             <tr class="hover:bg-[#FAF6EE]">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ $user->name }}
-                                    @if ($user->id === auth()->id())
-                                        <span class="text-xs text-gray-400">({{ __('You') }})</span>
-                                    @endif
+                                    <div class="flex items-center gap-3">
+                                        <x-avatar :user="$user" class="h-9 w-9 text-xs" />
+                                        <span>
+                                            {{ $user->name }}
+                                            @if ($user->id === auth()->id())
+                                                <span class="text-xs text-gray-400">({{ __('You') }})</span>
+                                            @endif
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $user->email }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -82,27 +87,12 @@
                                             </form>
                                         @endif
                                         <a href="{{ route('superadmin.users.edit', $user) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                                        @if ($user->is_active)
-                                            @if ($user->role === \App\Enums\UserRole::Superadmin && $activeSuperadminCount <= 1)
-                                                <span class="text-gray-300" title="{{ __('You cannot deactivate the last remaining Superadmin.') }}">{{ __('Deactivate') }}</span>
-                                            @else
-                                                <x-confirm-form
-                                                    :action="route('superadmin.users.deactivate', $user)"
-                                                    method="POST"
-                                                    class="inline"
-                                                    :title="__('Deactivate this account?')"
-                                                    :message="__(':name will no longer be able to sign in. Their account and history are kept and can be reactivated anytime.', ['name' => $user->name])"
-                                                    :confirm-label="__('Deactivate')"
-                                                >
-                                                    <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Deactivate') }}</button>
-                                                </x-confirm-form>
-                                            @endif
-                                        @else
+                                        @unless ($user->is_active)
                                             <form action="{{ route('superadmin.users.reactivate', $user) }}" method="POST" class="inline">
                                                 @csrf
                                                 <button type="submit" class="text-green-700 hover:text-green-900">{{ __('Reactivate') }}</button>
                                             </form>
-                                        @endif
+                                        @endunless
                                     @endif
                                 </td>
                             </tr>
@@ -164,26 +154,12 @@
                                 </form>
                             @endif
                             <a href="{{ route('superadmin.users.edit', $user) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                            @if ($user->is_active)
-                                @if ($user->role === \App\Enums\UserRole::Superadmin && $activeSuperadminCount <= 1)
-                                    <span class="text-gray-300" title="{{ __('You cannot deactivate the last remaining Superadmin.') }}">{{ __('Deactivate') }}</span>
-                                @else
-                                    <x-confirm-form
-                                        :action="route('superadmin.users.deactivate', $user)"
-                                        method="POST"
-                                        :title="__('Deactivate this account?')"
-                                        :message="__(':name will no longer be able to sign in. Their account and history are kept and can be reactivated anytime.', ['name' => $user->name])"
-                                        :confirm-label="__('Deactivate')"
-                                    >
-                                        <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Deactivate') }}</button>
-                                    </x-confirm-form>
-                                @endif
-                            @else
+                            @unless ($user->is_active)
                                 <form action="{{ route('superadmin.users.reactivate', $user) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="text-green-700 hover:text-green-900">{{ __('Reactivate') }}</button>
                                 </form>
-                            @endif
+                            @endunless
                         </div>
                     @endunless
                 </div>

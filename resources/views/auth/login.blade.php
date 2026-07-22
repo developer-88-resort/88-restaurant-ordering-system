@@ -23,7 +23,7 @@
             </h1>
 
             <p class="text-[#6F6258] text-lg mt-1 font-normal">
-                {{ __('SuperAdmin Portal') }}
+                {{ __('Management Portal') }}
             </p>
         </div>
 

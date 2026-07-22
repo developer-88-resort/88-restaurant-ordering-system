@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\InvoiceSnapshotStatus;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\UserRole;
 use App\Models\Area;
@@ -162,17 +163,16 @@ class OrderPaymentFinalizationTest extends TestCase
         $response->assertSessionHasErrors(['discount_qualified_name', 'discount_id_number', 'discount_eligibility_method']);
     }
 
-    public function test_staff_role_cannot_finalize_payment_but_admin_and_superadmin_can(): void
+    public function test_staff_role_can_finalize_payment(): void
     {
+        // Staff was previously blocked here; Order Management (incl.
+        // payment finalization) was deliberately opened up to Staff
+        // alongside Admin/Superadmin — see routes/web.php's shared
+        // "role:superadmin,admin,staff" group. Admin/Superadmin coverage
+        // for this same endpoint already exists throughout this file.
         $order = $this->makeOrder('500.00');
 
         $this->actingAs($this->staff)
-            ->patch("/orders/{$order->id}/mark-as-paid", ['payment_method' => 'cash', 'amount_received' => '500.00'])
-            ->assertForbidden();
-
-        $this->assertSame(PaymentStatus::Unpaid, $order->fresh()->payment_status);
-
-        $this->actingAs($this->admin)
             ->patch("/orders/{$order->id}/mark-as-paid", ['payment_method' => 'cash', 'amount_received' => '500.00'])
             ->assertRedirect();
 
@@ -484,6 +484,51 @@ class OrderPaymentFinalizationTest extends TestCase
         $this->assertSame(['Item B'], $secondSnapshot->discount_eligible_item_names);
         // The OLD snapshot's own record must be untouched by the repay.
         $this->assertSame(['Item A'], $firstSnapshot->fresh()->discount_eligible_item_names);
+    }
+
+    public function test_voided_invoice_keeps_its_own_payment_details_after_a_repay_with_a_different_method(): void
+    {
+        $order = $this->makeOrder('500.00');
+
+        // First payment: cash.
+        $this->actingAs($this->admin)->patch("/orders/{$order->id}/mark-as-paid", [
+            'payment_method' => 'cash',
+            'amount_received' => '500.00',
+        ]);
+
+        $order->refresh();
+        $firstSnapshot = $order->currentInvoiceSnapshot;
+        $this->assertSame(PaymentMethod::Cash, $firstSnapshot->payment_method);
+        $this->assertNull($firstSnapshot->payment_reference);
+        $this->assertSame('500.00', $firstSnapshot->amount_received);
+        $this->assertSame('0.00', $firstSnapshot->change_amount);
+
+        $this->actingAs($this->admin)->patch("/orders/{$order->id}/void-payment", ['void_reason' => 'test']);
+
+        // Repay: this time GCash, with a reference number and a tendered
+        // amount that produces change.
+        $this->actingAs($this->admin)->patch("/orders/{$order->id}/mark-as-paid", [
+            'payment_method' => 'gcash',
+            'payment_reference' => 'GC-12345',
+            'amount_received' => '600.00',
+        ]);
+
+        $order->refresh();
+        $secondSnapshot = $order->currentInvoiceSnapshot;
+
+        $this->assertSame(PaymentMethod::Gcash, $secondSnapshot->payment_method);
+        $this->assertSame('GC-12345', $secondSnapshot->payment_reference);
+        $this->assertSame('600.00', $secondSnapshot->amount_received);
+        $this->assertSame('100.00', $secondSnapshot->change_amount);
+
+        // The OLD (voided) snapshot's own payment record must be untouched
+        // by the repay — it must still show the original cash payment, not
+        // the live order's now-overwritten payment columns.
+        $firstSnapshot->refresh();
+        $this->assertSame(PaymentMethod::Cash, $firstSnapshot->payment_method);
+        $this->assertNull($firstSnapshot->payment_reference);
+        $this->assertSame('500.00', $firstSnapshot->amount_received);
+        $this->assertSame('0.00', $firstSnapshot->change_amount);
     }
 
     private function makeOrder(string $totalAmount): Order

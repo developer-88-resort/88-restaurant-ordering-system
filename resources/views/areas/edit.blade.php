@@ -7,7 +7,7 @@
 
     <div class="max-w-lg">
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-            <form method="POST" action="{{ route('areas.update', $area) }}">
+            <form method="POST" action="{{ route('areas.update', $area) }}" data-draft-key="area-edit-{{ $area->id }}">
                 @csrf
                 @method('PUT')
 

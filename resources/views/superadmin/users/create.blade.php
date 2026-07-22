@@ -10,7 +10,7 @@
         {{-- Invite form --}}
         <div class="lg:col-span-2">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-6 sm:p-8">
-                <form method="POST" action="{{ route('superadmin.users.store') }}">
+                <form method="POST" action="{{ route('superadmin.users.store') }}" data-draft-key="superadmin-user-create">
                     @csrf
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">

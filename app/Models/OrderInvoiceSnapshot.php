@@ -6,6 +6,7 @@ use App\Concerns\LogsAuditActivity;
 use App\Enums\DiscountEligibilityMethod;
 use App\Enums\DiscountType;
 use App\Enums\InvoiceSnapshotStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\TaxRegistrationType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,6 +82,10 @@ class OrderInvoiceSnapshot extends Model
         'buyer_address',
         'rounding_adjustment',
         'total_amount_due',
+        'payment_method',
+        'payment_reference',
+        'amount_received',
+        'change_amount',
         'computed_by',
         'computed_at',
     ];
@@ -112,6 +117,9 @@ class OrderInvoiceSnapshot extends Model
             'discount_promo_percent' => 'decimal:2',
             'rounding_adjustment' => 'decimal:2',
             'total_amount_due' => 'decimal:2',
+            'payment_method' => PaymentMethod::class,
+            'amount_received' => 'decimal:2',
+            'change_amount' => 'decimal:2',
             'computed_at' => 'datetime',
         ];
     }

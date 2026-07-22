@@ -25,7 +25,7 @@
     >
         <div class="flex-1 w-full">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-                <form method="POST" action="{{ route('spaces.store-bulk') }}">
+                <form method="POST" action="{{ route('spaces.store-bulk') }}" data-draft-key="space-create-{{ $category->id }}">
                     @csrf
                     <input type="hidden" name="category_id" value="{{ $category->id }}">
 

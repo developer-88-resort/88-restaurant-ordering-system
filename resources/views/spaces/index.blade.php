@@ -1,12 +1,18 @@
 <x-app-layout>
+    @php
+        $canManageSpaces = in_array(Auth::user()->role, [\App\Enums\UserRole::Superadmin, \App\Enums\UserRole::Admin], true);
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Spaces') }}
             </h2>
-            <a href="{{ route('areas.index') }}" class="text-sm text-[#8A3330] hover:underline font-medium">
-                {{ __('Manage Areas') }}
-            </a>
+            @if ($canManageSpaces)
+                <a href="{{ route('areas.index') }}" class="text-sm text-[#8A3330] hover:underline font-medium">
+                    {{ __('Manage Areas') }}
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -14,8 +20,8 @@
         <x-empty-state
             :title="__('No areas yet')"
             :description="__('Add an area (e.g. Cottages, Dining Area, Rooms) to start organizing spaces.')"
-            :actionLabel="__('New Area')"
-            :actionHref="route('areas.create')"
+            :actionLabel="$canManageSpaces ? __('New Area') : null"
+            :actionHref="$canManageSpaces ? route('areas.create') : null"
         />
     @else
         <div
@@ -95,11 +101,13 @@
                             : route('spaces.create', ['area_id' => $area->id]);
                     @endphp
 
-                    <div class="flex items-center justify-end mb-5">
-                        <a href="{{ $newSpaceUrl }}" class="text-sm text-[#8A3330] hover:underline font-medium">
-                            + {{ __('New Space') }}
-                        </a>
-                    </div>
+                    @if ($canManageSpaces)
+                        <div class="flex items-center justify-end mb-5">
+                            <a href="{{ $newSpaceUrl }}" class="text-sm text-[#8A3330] hover:underline font-medium">
+                                + {{ __('New Space') }}
+                            </a>
+                        </div>
+                    @endif
 
                     @php $allSpaces = $area->categories->flatMap->spaces; @endphp
 
@@ -107,8 +115,8 @@
                         <x-empty-state
                             :title="__('No spaces yet')"
                             :description="__('Add individual spaces (e.g. Cottage Table 1) so customers can be assigned to them.')"
-                            :actionLabel="__('New Space')"
-                            :actionHref="$newSpaceUrl"
+                            :actionLabel="$canManageSpaces ? __('New Space') : null"
+                            :actionHref="$canManageSpaces ? $newSpaceUrl : null"
                         />
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -116,7 +124,9 @@
                                 <div class="border border-[#E5DDD0] rounded-xl p-4 bg-white hover:border-[#8A3330] transition">
                                     <div class="flex items-start justify-between gap-2">
                                         <span class="font-semibold text-gray-900">{{ $space->name }}</span>
-                                        <a href="{{ route('spaces.print', $space) }}" target="_blank" class="text-xs text-[#8A3330] hover:underline shrink-0">{{ __('QR') }}</a>
+                                        @if ($canManageSpaces)
+                                            <a href="{{ route('spaces.print', $space) }}" target="_blank" class="text-xs text-[#8A3330] hover:underline shrink-0">{{ __('QR') }}</a>
+                                        @endif
                                     </div>
                                     <form action="{{ route('spaces.update-status', $space) }}" method="POST" class="mt-3">
                                         @csrf
@@ -131,18 +141,20 @@
                                             </select>
                                         </div>
                                     </form>
-                                    <div class="mt-3 pt-3 border-t border-[#E5DDD0] flex items-center justify-between text-xs">
-                                        <a href="{{ route('spaces.edit', $space) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                                        <x-confirm-form
-                                            :action="route('spaces.destroy', $space)"
-                                            method="DELETE"
-                                            :title="__('Delete this space?')"
-                                            :message="__('This will permanently remove :name.', ['name' => $space->name])"
-                                            :confirm-label="__('Delete')"
-                                        >
-                                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                                        </x-confirm-form>
-                                    </div>
+                                    @if ($canManageSpaces)
+                                        <div class="mt-3 pt-3 border-t border-[#E5DDD0] flex items-center justify-between text-xs">
+                                            <a href="{{ route('spaces.edit', $space) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
+                                            <x-confirm-form
+                                                :action="route('spaces.destroy', $space)"
+                                                method="DELETE"
+                                                :title="__('Delete this space?')"
+                                                :message="__('This will permanently remove :name.', ['name' => $space->name])"
+                                                :confirm-label="__('Delete')"
+                                            >
+                                                <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
+                                            </x-confirm-form>
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>

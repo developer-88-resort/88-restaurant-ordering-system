@@ -7,7 +7,7 @@
 
     <div class="max-w-lg" x-data="{ isFree: {{ old('is_free') ? 'true' : 'false' }} }">
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-            <form method="POST" action="{{ route('space-categories.store') }}">
+            <form method="POST" action="{{ route('space-categories.store') }}" data-draft-key="space-category-create-{{ $area->id }}">
                 @csrf
                 <input type="hidden" name="area_id" value="{{ $area->id }}">
 

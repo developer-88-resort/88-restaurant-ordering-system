@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesMenuItemVariantSelections;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * The Welcome (lobby QR) flow's "Order Food" tile — a takeout order with
@@ -12,6 +14,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreCustomerTakeoutOrderRequest extends FormRequest
 {
+    use ValidatesMenuItemVariantSelections;
+
     public function authorize(): bool
     {
         return true;
@@ -28,10 +32,16 @@ class StoreCustomerTakeoutOrderRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.menu_item_id' => [
                 'required',
-                'distinct',
-                Rule::exists('menu_items', 'id')->where('is_available', true),
+                Rule::exists('menu_items', 'id')->whereIn('availability_status', ['available', 'seasonal'])->whereNull('deleted_at'),
             ],
+            'items.*.menu_item_variant_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
+            'items.*.notes' => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(fn (Validator $validator) => $this->validateVariantSelections($validator));
     }
 }

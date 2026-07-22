@@ -6,18 +6,26 @@ use App\Http\Requests\StoreMenuCategoryRequest;
 use App\Http\Requests\UpdateMenuCategoryRequest;
 use App\Models\MenuCategory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MenuCategoryController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $showArchived = $request->boolean('archived');
+
         $categories = MenuCategory::withCount('menuItems')
+            ->when($showArchived, fn ($query) => $query->onlyTrashed())
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        return view('menu-categories.index', ['categories' => $categories]);
+        return view('menu-categories.index', [
+            'categories' => $categories,
+            'showArchived' => $showArchived,
+            'archivedCount' => MenuCategory::onlyTrashed()->count(),
+        ]);
     }
 
     public function create(): View
@@ -70,16 +78,28 @@ class MenuCategoryController extends Controller
             : __('":name" is now inactive.', ['name' => $menuCategory->name]));
     }
 
+    /**
+     * Archives (soft-deletes) rather than permanently removing — reversible
+     * via restore(), unlike the old hard delete.
+     */
     public function destroy(MenuCategory $menuCategory): RedirectResponse
     {
         if ($menuCategory->menuItems()->exists()) {
             return redirect()->route('menu-categories.index')
-                ->with('error', __('Cannot delete a category that still has menu items. Move or delete its items first.'));
+                ->with('error', __('Cannot archive a category that still has menu items. Move or archive its items first.'));
         }
 
         $menuCategory->delete();
 
         return redirect()->route('menu-categories.index')
-            ->with('status', __('Menu category deleted successfully.'));
+            ->with('status', __('":name" was archived.', ['name' => $menuCategory->name]));
+    }
+
+    public function restore(MenuCategory $menuCategory): RedirectResponse
+    {
+        $menuCategory->restore();
+
+        return redirect()->route('menu-categories.index', ['archived' => 1])
+            ->with('status', __('":name" was restored.', ['name' => $menuCategory->name]));
     }
 }

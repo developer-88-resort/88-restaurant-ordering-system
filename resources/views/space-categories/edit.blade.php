@@ -7,7 +7,7 @@
 
     <div class="max-w-lg" x-data="{ isFree: {{ old('is_free', $category->is_free) ? 'true' : 'false' }} }">
         <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-            <form method="POST" action="{{ route('space-categories.update', $category) }}">
+            <form method="POST" action="{{ route('space-categories.update', $category) }}" data-draft-key="space-category-edit-{{ $category->id }}">
                 @csrf
                 @method('PUT')
 

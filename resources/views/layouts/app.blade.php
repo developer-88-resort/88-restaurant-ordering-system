@@ -53,7 +53,7 @@
                             </svg>
                         </button>
 
-                        <a href="{{ Auth::user()->role === \App\Enums\UserRole::Superadmin ? route('superadmin.dashboard') : route('profile.edit') }}" class="shrink-0">
+                        <a href="{{ route(Auth::user()->homeRouteName()) }}" class="shrink-0">
                             @if (file_exists(public_path('images/logo2024.png')))
                                 <img src="{{ asset('images/logo2024.png') }}" alt="88 Hot Spring Resort" class="h-9 w-auto object-contain">
                             @else
@@ -156,11 +156,12 @@
 
                     @php
                         $isSuperadmin = Auth::user()->role === \App\Enums\UserRole::Superadmin;
-                        $isOperational = in_array(Auth::user()->role, [\App\Enums\UserRole::Superadmin, \App\Enums\UserRole::Admin], true);
+                        $canSeeReports = in_array(Auth::user()->role, [\App\Enums\UserRole::Superadmin, \App\Enums\UserRole::Admin], true);
+                        $isOperational = in_array(Auth::user()->role, [\App\Enums\UserRole::Superadmin, \App\Enums\UserRole::Admin, \App\Enums\UserRole::Staff], true);
                     @endphp
 
                     <nav class="space-y-5" @click="sidebarOpen = false">
-                        @if ($isSuperadmin)
+                        @if ($isOperational)
                             <x-sidebar-group :label="__('Dashboard')">
                                 <x-sidebar-link :href="route('superadmin.dashboard')" :active="request()->routeIs('superadmin.dashboard')">
                                     <x-slot:icon>
@@ -216,7 +217,7 @@
                                     {{ __('Menu Management') }}
                                 </x-sidebar-link>
 
-                                @if ($isSuperadmin)
+                                @if ($canSeeReports)
                                     <x-sidebar-link :href="route('superadmin.reports.index')" :active="request()->routeIs('superadmin.reports.*')">
                                         <x-slot:icon>
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
