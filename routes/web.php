@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AreaController;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\CustomerWelcomeController;
 use App\Http\Controllers\KitchenController;
@@ -153,3 +154,12 @@ Route::post('/welcome/call-staff', [CustomerWelcomeController::class, 'callStaff
     ->name('customer.welcome.call-staff.send');
 
 require __DIR__.'/auth.php';
+
+// TEMPORARY — testing-deployment bootstrap only, no Shell access on Render's
+// free tier to run `php artisan db:seed` directly. Remove this route (and
+// redeploy) right after using it once.
+Route::get('/render-test-setup-b601bb28154e9163bae1203fc983fedc', function () {
+    Artisan::call('db:seed', ['--force' => true]);
+
+    return 'Seeded. '.Artisan::output();
+});
