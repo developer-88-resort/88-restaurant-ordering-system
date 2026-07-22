@@ -4,12 +4,16 @@
 # this file entirely — override their own "Start Command" instead:
 #   Reverb service : php artisan reverb:start --host=0.0.0.0 --port=$PORT
 #   Queue service  : php artisan queue:work --sleep=3 --tries=3
-set -e
+#
+# Deliberately NOT using `set -e` here: this is a testing deployment, and a
+# failed migration or cache step should never prevent the web server itself
+# from starting — otherwise the container crash-loops with nothing listening
+# on $PORT at all, which is much harder to debug than a site that's up but
+# missing a cache/migration. Each risky step logs its own failure and moves on.
+php artisan storage:link 2>&1 || true
+php artisan migrate --force 2>&1 || true
+php artisan config:cache 2>&1 || true
+php artisan route:cache 2>&1 || true
+php artisan view:cache 2>&1 || true
 
-php artisan storage:link || true
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-php artisan serve --host=0.0.0.0 --port="${PORT:-8080}"
+exec php artisan serve --host=0.0.0.0 --port="${PORT:-8080}"
