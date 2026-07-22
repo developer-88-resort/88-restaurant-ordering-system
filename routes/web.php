@@ -159,7 +159,15 @@ require __DIR__.'/auth.php';
 // free tier to run `php artisan db:seed` directly. Remove this route (and
 // redeploy) right after using it once.
 Route::get('/render-test-setup-b601bb28154e9163bae1203fc983fedc', function () {
-    Artisan::call('db:seed', ['--force' => true]);
+    try {
+        Artisan::call('db:seed', ['--force' => true]);
 
-    return 'Seeded. '.Artisan::output();
+        return response('Seeded. '.Artisan::output(), 200, ['Content-Type' => 'text/plain']);
+    } catch (\Throwable $e) {
+        return response(
+            $e->getMessage()."\n\n".$e->getFile().':'.$e->getLine()."\n\n".$e->getTraceAsString(),
+            500,
+            ['Content-Type' => 'text/plain']
+        );
+    }
 });
