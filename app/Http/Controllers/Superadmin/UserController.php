@@ -19,9 +19,7 @@ class UserController extends Controller
      */
     public function index(): View
     {
-        // CASE WHEN instead of MySQL-only FIELD() so this works on any
-        // database driver (Postgres, SQLite, etc.), not just MySQL.
-        $users = User::orderByRaw("CASE role WHEN 'superadmin' THEN 1 WHEN 'admin' THEN 2 WHEN 'staff' THEN 3 ELSE 4 END")
+        $users = User::orderByRaw("field(role, 'superadmin', 'admin', 'staff')")
             ->orderBy('created_at')
             ->get();
 

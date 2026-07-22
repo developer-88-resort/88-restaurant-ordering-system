@@ -125,10 +125,7 @@ class ReportController extends Controller
             ->where('payment_status', PaymentStatus::Paid->value)
             ->whereBetween('created_at', [$start, $end])
             ->select(
-                // CAST(... AS DATE) instead of MySQL's DATE() shorthand so
-                // this works on any database driver, not just MySQL —
-                // Postgres has no bare DATE() function.
-                DB::raw('CAST(created_at AS DATE) as sale_date'),
+                DB::raw('DATE(created_at) as sale_date'),
                 DB::raw('SUM(total_amount) as revenue'),
             )
             ->groupBy('sale_date')
