@@ -8,12 +8,13 @@
     <div class="flex flex-col lg:flex-row gap-6 items-start">
         <div class="flex-1 max-w-2xl w-full">
             <div class="bg-white border border-[#E5DDD0] rounded-xl p-8">
-                <form method="POST" action="{{ route('spaces.update', $space) }}" data-draft-key="space-edit-{{ $space->id }}">
+                <form method="POST" action="{{ route('spaces.update', $space) }}" data-draft-key="space-edit-{{ $space->id }}"
+                      x-data="{ shape: '{{ old('shape', $space->shape) }}' }">
                     @csrf
                     @method('PUT')
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div class="sm:col-span-2">
                             <x-input-label for="name" :value="__('Space Name')" />
                             <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name', $space->name)" required autofocus />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
@@ -27,6 +28,54 @@
                                 @endforeach
                             </select>
                             <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <x-input-label for="shape" :value="__('Floor Plan Shape')" />
+                            <select id="shape" name="shape" x-model="shape" class="block mt-1 w-full border-gray-300 focus:border-[#8A3330] focus:ring-[#8A3330] rounded-md shadow-sm" required>
+                                <option value="rectangle" @selected(old('shape', $space->shape) === 'rectangle')>{{ __('Rectangle') }}</option>
+                                <option value="circle" @selected(old('shape', $space->shape) === 'circle')>{{ __('Circle') }}</option>
+                                <option value="long_table" @selected(old('shape', $space->shape) === 'long_table')>{{ __('Long Table') }}</option>
+                            </select>
+                            <x-input-error :messages="$errors->get('shape')" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <x-input-label for="capacity" :value="__('Seat Count')" />
+                            <x-text-input id="capacity" name="capacity" type="number" min="1"
+                                          class="block mt-1 w-full" :value="old('capacity', $space->capacity)"
+                                          placeholder="{{ __('e.g. 4') }}" />
+                            <p class="text-xs text-gray-500 mt-1">{{ __('Optional — also controls how many chairs show on the Floor Plan.') }}</p>
+                            <x-input-error :messages="$errors->get('capacity')" class="mt-2" />
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5">
+                        <x-input-label :value="__('Floor Plan Size & Rotation')" />
+                        <p class="text-xs text-gray-500 mb-2">{{ __('Optional — leave blank to use the default size for the chosen shape. Usually easier to adjust visually via "Arrange Floor Plan" instead.') }}</p>
+                        @php $defaultSize = $space->defaultSize(); @endphp
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                            <div>
+                                <x-input-label for="width" :value="__('Width')" />
+                                <x-text-input id="width" name="width" type="number" min="20" max="800"
+                                              class="block mt-1 w-full" :value="old('width', $space->width)"
+                                              placeholder="{{ $defaultSize['w'] }} ({{ __('default') }})" />
+                                <x-input-error :messages="$errors->get('width')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="height" :value="__('Height')" />
+                                <x-text-input id="height" name="height" type="number" min="20" max="800"
+                                              class="block mt-1 w-full" :value="old('height', $space->height)"
+                                              placeholder="{{ $defaultSize['h'] }} ({{ __('default') }})" />
+                                <x-input-error :messages="$errors->get('height')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="rotation" :value="__('Rotation (0–359°)')" />
+                                <x-text-input id="rotation" name="rotation" type="number" min="0" max="359"
+                                              class="block mt-1 w-full" :value="old('rotation', $space->rotation)" />
+                                <x-input-error :messages="$errors->get('rotation')" class="mt-2" />
+                            </div>
                         </div>
                     </div>
 

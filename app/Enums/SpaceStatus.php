@@ -62,4 +62,20 @@ enum SpaceStatus: string
             self::Disabled => 'bg-blue-500',
         };
     }
+
+    /**
+     * Same colors as capsuleAccentClass(), as literal hex — SVG presentation
+     * attributes (fill/stroke) don't resolve Tailwind utility classes, so the
+     * floor plan's table shapes need actual color values instead.
+     */
+    public function hexColor(): string
+    {
+        return match ($this) {
+            self::Available => '#22c55e',
+            self::Occupied => '#ef4444',
+            self::Reserved => '#f97316',
+            self::Maintenance => '#eab308',
+            self::Disabled => '#3b82f6',
+        };
+    }
 }

@@ -11,6 +11,9 @@
 </div>
 <div class="min-w-0 flex-1">
     <p class="text-sm font-medium text-gray-900">{{ $item->name }}</p>
+    @if ($item->description)
+        <p class="text-xs text-gray-500 truncate">{{ $item->description }}</p>
+    @endif
     <p class="text-sm font-semibold text-[#8A3330] mt-0.5">{{ $item->priceRangeLabel() }}</p>
     <template x-if="itemAvailability[{{ $item->id }}] === 'out_of_stock'">
         <span class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-gray-500">

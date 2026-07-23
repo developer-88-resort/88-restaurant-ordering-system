@@ -165,38 +165,94 @@
                                 {{ __('Archived') }}
                             </span>
                         @elseif ($canManageMenu)
-                            <select
-                                x-model="statuses[{{ $item->id }}]"
-                                @change="
-                                    const value = $event.target.value, previous = statuses[{{ $item->id }}];
-                                    fetch('{{ route('menu-items.set-availability', $item) }}', {
-                                        method: 'PATCH',
-                                        headers: {
-                                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                                            'Accept': 'application/json',
-                                            'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ status: value }),
-                                    }).catch(() => statuses[{{ $item->id }}] = previous);
-                                "
-                                :class="{
-                                    'bg-green-100 text-green-800': statuses[{{ $item->id }}] === 'available',
-                                    'bg-gray-200 text-gray-700': statuses[{{ $item->id }}] === 'out_of_stock',
-                                    'bg-amber-100 text-amber-800': statuses[{{ $item->id }}] === 'seasonal',
-                                    'bg-slate-700 text-white': statuses[{{ $item->id }}] === 'hidden',
-                                }"
-                                class="absolute top-1.5 right-1.5 text-[10px] font-semibold rounded-full border-none py-1 pl-2 pr-5 shadow-sm cursor-pointer focus:ring-2 focus:ring-[#8A3330]"
+                            <div class="absolute top-1.5 right-1.5"
+                                 x-data="{
+                                     open: false,
+                                     menuStyle: '',
+                                     toggle(event) {
+                                         if (this.open) { this.open = false; return; }
+                                         const rect = event.currentTarget.getBoundingClientRect();
+                                         this.menuStyle = `top:${rect.bottom + 6}px; left:${rect.right - 168}px;`;
+                                         this.open = true;
+                                     },
+                                     select(value) {
+                                         const previous = statuses[{{ $item->id }}];
+                                         statuses[{{ $item->id }}] = value;
+                                         this.open = false;
+                                         fetch('{{ route('menu-items.set-availability', $item) }}', {
+                                             method: 'PATCH',
+                                             headers: {
+                                                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                                 'Accept': 'application/json',
+                                                 'Content-Type': 'application/json',
+                                             },
+                                             body: JSON.stringify({ status: value }),
+                                         }).catch(() => statuses[{{ $item->id }}] = previous);
+                                     },
+                                 }"
                             >
-                                @foreach ($availabilityOptions as $option)
-                                    <option value="{{ $option->value }}">{{ $option->label() }}</option>
-                                @endforeach
-                            </select>
+                                <button
+                                    type="button"
+                                    @click="toggle($event)"
+                                    :class="{
+                                        'bg-green-100 text-green-800': statuses[{{ $item->id }}] === 'available',
+                                        'bg-gray-200 text-gray-700': statuses[{{ $item->id }}] === 'out_of_stock',
+                                        'bg-amber-100 text-amber-800': statuses[{{ $item->id }}] === 'seasonal',
+                                        'bg-slate-700 text-white': statuses[{{ $item->id }}] === 'hidden',
+                                    }"
+                                    class="inline-flex items-center gap-1 text-[10px] font-semibold rounded-full py-1 pl-2 pr-1.5 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A3330]"
+                                >
+                                    <span x-text="{
+                                        available: '{{ __('Available') }}',
+                                        out_of_stock: '{{ __('Out of Stock') }}',
+                                        seasonal: '{{ __('Seasonal') }}',
+                                        hidden: '{{ __('Hidden') }}',
+                                    }[statuses[{{ $item->id }}]]"></span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-2.5 w-2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
+
+                                <template x-teleport="body">
+                                    <div
+                                        x-show="open" x-cloak
+                                        @click.outside="open = false"
+                                        x-on:keydown.escape.window="open = false"
+                                        :style="menuStyle"
+                                        x-transition:enter="transition ease-out duration-100"
+                                        x-transition:enter-start="opacity-0 scale-95"
+                                        x-transition:enter-end="opacity-100 scale-100"
+                                        class="fixed z-50 w-40 rounded-lg bg-white border border-[#E5DDD0] shadow-lg py-1"
+                                    >
+                                        @foreach ($availabilityOptions as $option)
+                                            <button
+                                                type="button"
+                                                @click="select('{{ $option->value }}')"
+                                                :class="statuses[{{ $item->id }}] === '{{ $option->value }}' ? 'font-semibold text-gray-900' : 'text-gray-600'"
+                                                class="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[#FAF6EE] text-left"
+                                            >
+                                                <span class="h-1.5 w-1.5 rounded-full shrink-0 {{ match($option->value) {
+                                                    'available' => 'bg-green-500',
+                                                    'out_of_stock' => 'bg-gray-400',
+                                                    'seasonal' => 'bg-amber-500',
+                                                    'hidden' => 'bg-slate-500',
+                                                    default => 'bg-gray-400',
+                                                } }}"></span>
+                                                {{ $option->label() }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </template>
+                            </div>
                         @endif
                     </div>
 
                     <div class="p-2.5 flex-1 flex flex-col">
                         <span class="text-[9px] font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ $item->menuCategory->name }}</span>
                         <h3 class="mt-0.5 text-sm font-semibold text-gray-900 leading-snug truncate" title="{{ $item->name }}">{{ $item->name }}</h3>
+                        @if ($item->description)
+                            <p class="text-[10px] text-gray-500 truncate" title="{{ $item->description }}">{{ $item->description }}</p>
+                        @endif
                         <div class="flex items-center gap-1.5 mt-0.5">
                             @if ($item->prep_time_minutes)
                                 <span class="text-[10px] text-gray-400">{{ __(':minutes min prep', ['minutes' => $item->prep_time_minutes]) }}</span>

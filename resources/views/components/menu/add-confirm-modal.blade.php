@@ -46,6 +46,9 @@
             </div>
             <div class="min-w-0 flex-1 pt-0.5">
                 <h3 id="add-confirm-title" class="font-semibold text-gray-900" x-text="addConfirmItem?.name"></h3>
+                <template x-if="addConfirmItem?.description">
+                    <p class="text-sm text-gray-500 mt-0.5" x-text="addConfirmItem.description"></p>
+                </template>
                 <p class="text-sm text-[#8A7B6D] mt-0.5">{{ __('Add this item to your cart?') }}</p>
             </div>
             <button type="button" x-on:click="closeAddConfirm()" aria-label="{{ __('Close') }}" class="text-gray-400 hover:text-gray-600 shrink-0">

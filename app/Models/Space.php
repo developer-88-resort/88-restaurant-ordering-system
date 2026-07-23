@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsAuditActivity;
+use App\Enums\OrderStatus;
 use App\Enums\SpaceStatus;
 use App\Events\SpaceOccupancyChanged;
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +24,37 @@ class Space extends Model
         'status',
         'capacity',
         'sort_order',
+        'position_x',
+        'position_y',
+        'shape',
+        'width',
+        'height',
+        'rotation',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => SpaceStatus::class,
+            'position_x' => 'decimal:2',
+            'position_y' => 'decimal:2',
+            'status_changed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Default footprint (canvas units) for a shape when width/height haven't
+     * been customized (via resize handle or the Edit form's overrides).
+     *
+     * @return array{w: int, h: int}
+     */
+    public function defaultSize(): array
+    {
+        return match ($this->shape) {
+            'circle' => ['w' => 90, 'h' => 90],
+            'long_table' => ['w' => 240, 'h' => 70],
+            default => ['w' => 120, 'h' => 70],
+        };
     }
 
     protected static function booted(): void
@@ -159,11 +184,18 @@ class Space extends Model
         $wasAvailable = $this->status === SpaceStatus::Available;
         $partners = $this->sharedTables;
 
-        $this->update(['status' => $status]);
+        // Only stamp status_changed_at (and only touch the row at all) when
+        // the status is actually changing — this method also runs from a
+        // plain Edit-form save that didn't touch Status, and that must stay
+        // a no-op or every occupied table's "occupied since" timer would
+        // silently reset whenever an unrelated field (e.g. the name) is saved.
+        if ($this->status !== $status) {
+            $this->update(['status' => $status, 'status_changed_at' => now()]);
+        }
 
         foreach ($partners as $sharedSpace) {
             if ($sharedSpace->status !== $status) {
-                $sharedSpace->update(['status' => $status]);
+                $sharedSpace->update(['status' => $status, 'status_changed_at' => now()]);
             }
         }
 
@@ -190,5 +222,23 @@ class Space extends Model
                 $table->syncSharedTables([]);
             }
         }
+    }
+
+    /**
+     * The most recent order still in progress for this space. Nothing in
+     * the schema enforces at most one active order per space, so this picks
+     * the latest rather than assuming there's exactly one.
+     */
+    public function activeOrder(): ?Order
+    {
+        return $this->orders()
+            ->whereNotIn('status', [OrderStatus::Completed, OrderStatus::Cancelled])
+            ->latest()
+            ->first();
+    }
+
+    public function hasActiveOrder(): bool
+    {
+        return $this->orders()->whereNotIn('status', [OrderStatus::Completed, OrderStatus::Cancelled])->exists();
     }
 }

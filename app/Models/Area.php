@@ -41,4 +41,14 @@ class Area extends Model
     {
         return $this->hasMany(Space::class);
     }
+
+    public function floorPlanWalls(): HasMany
+    {
+        return $this->hasMany(FloorPlanWall::class);
+    }
+
+    public function floorPlanObjects(): HasMany
+    {
+        return $this->hasMany(FloorPlanObject::class);
+    }
 }

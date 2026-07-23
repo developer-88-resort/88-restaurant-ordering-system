@@ -146,28 +146,6 @@
                         <x-input-error :messages="$errors->get('variants')" class="mt-2" />
                     </x-forms.section>
 
-                    <x-forms.section :title="__('Modifier Groups')" :description="__('Attach reusable groups like Rice Options or Spice Level to this item.')">
-                        @if ($modifierGroups->isEmpty())
-                            <p class="text-sm text-gray-400">
-                                {{ __('No modifier groups yet.') }}
-                                <a href="{{ route('modifier-groups.create') }}" class="text-[#8A3330] hover:underline font-medium">{{ __('Create one') }}</a>.
-                            </p>
-                        @else
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                @foreach ($modifierGroups as $group)
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" name="modifier_group_ids[]" value="{{ $group->id }}"
-                                               class="rounded border-gray-300 text-[#8A3330] shadow-sm focus:ring-[#8A3330]"
-                                               @checked(collect(old('modifier_group_ids', []))->contains($group->id))>
-                                        <span class="text-sm text-gray-700">{{ $group->name }}</span>
-                                        <span class="text-xs text-gray-400">({{ $group->selection_type->label() }}{{ $group->is_required ? ', '.__('required') : '' }})</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                            <a href="{{ route('modifier-groups.index') }}" class="mt-3 inline-block text-sm text-[#8A3330] hover:underline font-medium">{{ __('Manage Modifier Groups') }}</a>
-                        @endif
-                        <x-input-error :messages="$errors->get('modifier_group_ids')" class="mt-2" />
-                    </x-forms.section>
                 </div>
 
                 <div class="space-y-6">

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\OrderStatus;
 use App\Enums\SpaceStatus;
 use App\Http\Requests\StoreBulkSpacesRequest;
 use App\Http\Requests\StoreSpaceRequest;
@@ -12,6 +11,7 @@ use App\Models\Space;
 use App\Models\SpaceCategory;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\SvgWriter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,6 +25,8 @@ class SpaceController extends Controller
         $areas = Area::with([
             'categories' => fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
             'categories.spaces' => fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
+            'floorPlanWalls',
+            'floorPlanObjects',
         ])
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -138,11 +140,7 @@ class SpaceController extends Controller
 
     public function destroy(Space $space): RedirectResponse
     {
-        $hasActiveOrder = $space->orders()
-            ->whereNotIn('status', [OrderStatus::Completed, OrderStatus::Cancelled])
-            ->exists();
-
-        if ($hasActiveOrder) {
+        if ($space->hasActiveOrder()) {
             return redirect()->route('spaces.index', ['area' => $space->area_id])
                 ->with('error', __('":name" has an active order and can\'t be deleted.', ['name' => $space->name]));
         }
@@ -151,6 +149,26 @@ class SpaceController extends Controller
         $space->delete();
 
         return redirect()->route('spaces.index', ['area' => $areaId])->with('status', __('Space deleted successfully.'));
+    }
+
+    /**
+     * Persists a floor-plan drag/resize/rotate. Fetch-based (not a Turbo
+     * form submit) since this fires on every drag/resize/rotate end during
+     * arrangement and a full page reload each time would be unusable.
+     */
+    public function updateLayout(Request $request, Space $space): JsonResponse
+    {
+        $data = $request->validate([
+            'position_x' => ['required', 'numeric'],
+            'position_y' => ['required', 'numeric'],
+            'width' => ['required', 'integer', 'min:20', 'max:800'],
+            'height' => ['required', 'integer', 'min:20', 'max:800'],
+            'rotation' => ['required', 'integer', 'min:0', 'max:359'],
+        ]);
+
+        $space->update($data);
+
+        return response()->json(['status' => 'ok']);
     }
 
     public function print(Space $space): View

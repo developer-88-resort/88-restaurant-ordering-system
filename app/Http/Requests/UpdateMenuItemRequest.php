@@ -54,8 +54,6 @@ class UpdateMenuItemRequest extends FormRequest
             'variants.*.image' => ['nullable', 'image', 'max:2048'],
             'variants.*.remove_image' => ['nullable', 'boolean'],
             'default_variant_index' => ['nullable', 'integer', 'min:0'],
-            'modifier_group_ids' => ['nullable', 'array'],
-            'modifier_group_ids.*' => [Rule::exists('modifier_groups', 'id')->whereNull('deleted_at')],
         ];
     }
 

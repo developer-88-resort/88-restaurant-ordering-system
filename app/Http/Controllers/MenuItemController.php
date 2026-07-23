@@ -8,7 +8,6 @@ use App\Http\Requests\StoreMenuItemRequest;
 use App\Http\Requests\UpdateMenuItemRequest;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
-use App\Models\ModifierGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,37 +20,42 @@ class MenuItemController extends Controller
     {
         $showArchived = $request->boolean('archived');
 
-        $query = MenuItem::with(['menuCategory', 'images', 'variants']);
+        $query = MenuItem::with(['menuCategory', 'images', 'variants'])
+            ->join('menu_categories', 'menu_categories.id', '=', 'menu_items.menu_category_id')
+            ->select('menu_items.*');
 
         if ($showArchived) {
             $query->onlyTrashed();
         }
 
         if ($search = trim((string) $request->string('q'))) {
-            $query->where('name', 'like', '%'.$search.'%');
+            $query->where('menu_items.name', 'like', '%'.$search.'%');
         }
 
         if ($categoryId = $request->integer('category_id')) {
-            $query->where('menu_category_id', $categoryId);
+            $query->where('menu_items.menu_category_id', $categoryId);
         }
 
         $availability = $request->string('availability')->toString();
         if (MenuItemAvailability::tryFrom($availability)) {
-            $query->where('availability_status', $availability);
+            $query->where('menu_items.availability_status', $availability);
         }
 
         if ($request->boolean('featured')) {
-            $query->where('is_featured', true);
+            $query->where('menu_items.is_featured', true);
         }
 
         match ($request->string('sort')->toString()) {
-            'name_asc' => $query->orderBy('name'),
-            'price_asc' => $query->orderBy('price'),
-            'price_desc' => $query->orderByDesc('price'),
-            'prep_asc' => $query->orderByRaw('prep_time_minutes IS NULL, prep_time_minutes'),
-            'prep_desc' => $query->orderByDesc('prep_time_minutes'),
-            'newest' => $query->orderByDesc('created_at'),
-            default => $query->orderBy('sort_order')->orderBy('name'),
+            'name_asc' => $query->orderBy('menu_items.name'),
+            'price_asc' => $query->orderBy('menu_items.price'),
+            'price_desc' => $query->orderByDesc('menu_items.price'),
+            'prep_asc' => $query->orderByRaw('menu_items.prep_time_minutes IS NULL, menu_items.prep_time_minutes'),
+            'prep_desc' => $query->orderByDesc('menu_items.prep_time_minutes'),
+            'newest' => $query->orderByDesc('menu_items.created_at'),
+            // Group by category display order first (matches the category
+            // labels shown on each card), then each item's own position
+            // within that category.
+            default => $query->orderBy('menu_categories.sort_order')->orderBy('menu_items.sort_order')->orderBy('menu_items.name'),
         };
 
         $items = $query->paginate(24)->withQueryString();
@@ -85,13 +89,12 @@ class MenuItemController extends Controller
             'nextSortOrders' => $categories->mapWithKeys(fn ($category) => [
                 $category->id => (int) MenuItem::where('menu_category_id', $category->id)->max('sort_order') + 1,
             ]),
-            'modifierGroups' => ModifierGroup::orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
 
     public function store(StoreMenuItemRequest $request): RedirectResponse
     {
-        $data = $request->safe()->except(['images', 'variants', 'default_variant_index', 'modifier_group_ids']);
+        $data = $request->safe()->except(['images', 'variants', 'default_variant_index']);
         $data['is_featured'] = $request->boolean('is_featured');
         $data['is_best_seller'] = $request->boolean('is_best_seller');
         $data['availability_status'] = $request->input('availability_status', MenuItemAvailability::Available->value);
@@ -105,7 +108,6 @@ class MenuItemController extends Controller
 
         $this->storeUploadedImages($request, $menuItem);
         $this->syncVariants($request, $menuItem);
-        $menuItem->modifierGroups()->sync($request->input('modifier_group_ids', []));
 
         return redirect()->route('menu-items.index')
             ->with('status', __('Menu item created successfully.'));
@@ -123,16 +125,15 @@ class MenuItemController extends Controller
             ->get();
 
         return view('menu-items.edit', [
-            'item' => $menuItem->load(['images', 'variants', 'modifierGroups']),
+            'item' => $menuItem->load(['images', 'variants']),
             'categories' => $categories,
             'availabilityOptions' => MenuItemAvailability::cases(),
-            'modifierGroups' => ModifierGroup::orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
 
     public function update(UpdateMenuItemRequest $request, MenuItem $menuItem): RedirectResponse
     {
-        $data = $request->safe()->except(['images', 'remove_images', 'primary_image_id', 'variants', 'default_variant_index', 'modifier_group_ids']);
+        $data = $request->safe()->except(['images', 'remove_images', 'primary_image_id', 'variants', 'default_variant_index']);
         $data['is_featured'] = $request->boolean('is_featured');
         $data['is_best_seller'] = $request->boolean('is_best_seller');
         $data['availability_status'] = $request->input('availability_status', $menuItem->availability_status->value);
@@ -152,7 +153,6 @@ class MenuItemController extends Controller
 
         $this->storeUploadedImages($request, $menuItem);
         $this->syncVariants($request, $menuItem);
-        $menuItem->modifierGroups()->sync($request->input('modifier_group_ids', []));
 
         if ($primaryId = $request->integer('primary_image_id')) {
             $menuItem->images()->update(['is_primary' => false]);

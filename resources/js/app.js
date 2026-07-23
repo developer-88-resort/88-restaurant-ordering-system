@@ -9,7 +9,7 @@ window.Alpine = Alpine;
 // x-persist="{ key: 'unique-name', paths: ['someArray', 'someFlag'] }"
 // Narrow counterpart to draft-persistence.js's generic <form data-draft-key>
 // mechanism, for the handful of forms where an Alpine x-for array (menu item
-// variants, modifier group options, the staff order cart) needs its rows
+// variants, the staff order cart) needs its rows
 // restored into Alpine's reactive data directly — the DOM rows for those
 // don't exist until Alpine renders them, so there's nothing for the generic
 // DOM-scraping mechanism to restore values onto.
@@ -43,6 +43,21 @@ Alpine.directive('persist', (el, { expression }, { effect, cleanup }) => {
     }
 });
 
+// Registers a one-shot cleanup that runs right before Turbo Drive caches
+// the current page (i.e. right when navigating away). Echo listeners and
+// setInterval timers started in x-init don't get torn down on their own
+// when Turbo swaps the page instead of doing a full reload, so any x-init
+// that starts one must pair it with turboCleanup(() => ...) to avoid
+// stacking duplicate listeners/timers across repeat visits.
+//
+// Must be assigned before Alpine.start(): on a hard page load (not a Turbo
+// navigation), the module script is deferred, so document.readyState is
+// already past "loading" by the time this file runs — Alpine.start() then
+// processes every x-init on the page synchronously, immediately. Any
+// x-init that calls turboCleanup(...) would find it undefined if this
+// assignment came after Alpine.start(), as it originally did here.
+window.turboCleanup = (fn) => document.addEventListener('turbo:before-cache', fn, { once: true });
+
 Alpine.start();
 
 initDraftPersistence();
@@ -52,10 +67,10 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 
 window.Swal = Swal;
 
-// Registers a one-shot cleanup that runs right before Turbo Drive caches
-// the current page (i.e. right when navigating away). Echo listeners and
-// setInterval timers started in x-init don't get torn down on their own
-// when Turbo swaps the page instead of doing a full reload, so any x-init
-// that starts one must pair it with turboCleanup(() => ...) to avoid
-// stacking duplicate listeners/timers across repeat visits.
-window.turboCleanup = (fn) => document.addEventListener('turbo:before-cache', fn, { once: true });
+import interact from 'interactjs';
+
+window.interact = interact;
+
+import Konva from 'konva';
+
+window.Konva = Konva;

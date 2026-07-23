@@ -24,6 +24,7 @@
     $confirmPayload = [
         'id' => $item->id,
         'name' => $item->name,
+        'description' => $item->description,
         'imageUrl' => $imageUrl,
         'price' => (float) $item->price,
         'hasVariants' => $hasVariants,

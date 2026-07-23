@@ -2,8 +2,8 @@
 // accidental refresh or Turbo navigation away doesn't lose in-progress input.
 // Shared storage helpers are also used by the `x-persist` Alpine directive
 // registered in app.js, for the handful of forms with a dynamic x-for array
-// (menu item variants, modifier group options, the staff order cart) that
-// this module's plain-DOM restore can't reach.
+// (menu item variants, the staff order cart) that this module's plain-DOM
+// restore can't reach.
 
 const PREFIX = 'draft:';
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h — staff may step away and resume later.
