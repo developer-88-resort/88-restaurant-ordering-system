@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\AvailableLocales;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,12 +30,20 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Carry the language chosen on the login page (before this user was
+        // known) into their saved account preference, so it also follows
+        // them if they next sign in from a browser with no cookie yet.
+        $cookieLocale = $request->cookie('locale');
+        if ($cookieLocale && in_array($cookieLocale, AvailableLocales::CODES, true)) {
+            $request->user()->update(['locale' => $cookieLocale]);
+        }
+
         $redirectTo = match ($request->user()->role) {
             UserRole::Superadmin => route('superadmin.dashboard', absolute: false),
             default => route('profile.edit', absolute: false),
         };
 
-        return redirect()->intended($redirectTo)->with('status', 'Signed in successfully.');
+        return redirect()->intended($redirectTo)->with('status', __('Signed in successfully.'));
     }
 
     /**
@@ -48,6 +57,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('status', 'You have been signed out successfully.');
+        return redirect()->route('login')->with('status', __('You have been signed out successfully.'));
     }
 }

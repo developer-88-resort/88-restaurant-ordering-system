@@ -2,20 +2,14 @@
 
 namespace App\Providers;
 
-use App\Models\AuditLog;
-use App\Models\MenuCategory;
-use App\Models\MenuItem;
-use App\Models\Order;
-use App\Models\RestaurantTable;
-use App\Models\Setting;
-use App\Models\User;
-use App\Observers\AuditObserver;
+use App\Events\AuditLogCreated;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,21 +30,20 @@ class AppServiceProvider extends ServiceProvider
             URL::forceRootUrl(config('app.url'));
         }
 
-        MenuCategory::observe(AuditObserver::class);
-        MenuItem::observe(AuditObserver::class);
-        RestaurantTable::observe(AuditObserver::class);
-        User::observe(AuditObserver::class);
-        Setting::observe(AuditObserver::class);
-        Order::observe(AuditObserver::class);
+        if (app()->environment('local')) {
+            $this->clearStaleViteHotFile();
+        }
+
+        // Model changes (Area, MenuCategory, MenuItem, Order, Setting, Space,
+        // SpaceCategory, User) are audit-logged via the LogsAuditActivity
+        // trait on each model, not an observer — see app/Concerns/LogsAuditActivity.php.
 
         Event::listen(function (Login $event) {
-            AuditLog::create([
-                'user_id' => $event->user->id,
-                'action' => 'login',
-                'auditable_type' => User::class,
-                'auditable_id' => $event->user->id,
-                'description' => "{$event->user->name} logged in.",
-            ]);
+            activity('audit')
+                ->causedBy($event->user)
+                ->performedOn($event->user)
+                ->event('login')
+                ->log("{$event->user->name} logged in.");
         });
 
         Event::listen(function (Logout $event) {
@@ -58,23 +51,59 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            AuditLog::create([
-                'user_id' => $event->user->id,
-                'action' => 'logout',
-                'auditable_type' => User::class,
-                'auditable_id' => $event->user->id,
-                'description' => "{$event->user->name} logged out.",
-            ]);
+            activity('audit')
+                ->causedBy($event->user)
+                ->performedOn($event->user)
+                ->event('logout')
+                ->log("{$event->user->name} logged out.");
         });
 
         Event::listen(function (Failed $event) {
-            AuditLog::create([
-                'user_id' => $event->user?->id,
-                'action' => 'failed_login',
-                'auditable_type' => User::class,
-                'auditable_id' => $event->user?->id,
-                'description' => 'Failed login attempt for: '.($event->credentials['email'] ?? 'unknown'),
-            ]);
+            activity('audit')
+                ->causedBy($event->user)
+                ->event('failed_login')
+                ->log('Failed login attempt for: '.($event->credentials['email'] ?? 'unknown'));
         });
+
+        // Keep the Audit Logs page's real-time auto-reload working now that
+        // entries are written by spatie/laravel-activitylog instead of the
+        // old AuditLog model (which used to broadcast this itself).
+        Activity::created(function () {
+            broadcast(new AuditLogCreated());
+        });
+    }
+
+    /**
+     * `public/hot` is Vite's marker that a dev server is running — Laravel's
+     * @vite() directive points every asset at it when present. If the dev
+     * server process dies without a clean shutdown (closed terminal window,
+     * PC sleep, etc.) this file is left behind, silently pointing every page
+     * at a dead URL — the whole site (and, since it's a LAN address the
+     * browser resolves locally, especially any phone on the same WiFi)
+     * renders unstyled. Self-heal it here: if the file exists but nothing
+     * answers on that host/port, delete it so @vite() falls back to the
+     * built assets in public/build instead.
+     */
+    protected function clearStaleViteHotFile(): void
+    {
+        $hotFile = public_path('hot');
+
+        if (! file_exists($hotFile)) {
+            return;
+        }
+
+        $url = trim(file_get_contents($hotFile));
+        $host = trim(parse_url($url, PHP_URL_HOST) ?: 'localhost', '[]');
+        $port = parse_url($url, PHP_URL_PORT) ?: 5173;
+
+        $connection = @fsockopen($host, $port, $errno, $errstr, 0.15);
+
+        if ($connection) {
+            fclose($connection);
+
+            return;
+        }
+
+        @unlink($hotFile);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -45,8 +46,23 @@ class LoginRequest extends FormRequest
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            $pending = User::where('email', $this->string('email')->toString())
+                ->whereNull('password')
+                ->exists();
+
             throw ValidationException::withMessages([
-                'email' => 'Invalid email or password.',
+                'email' => $pending
+                    ? __('This account is pending activation. Please check your email for the invitation link.')
+                    : __('Invalid email or password.'),
+            ]);
+        }
+
+        if (! Auth::user()->is_active) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => __('This account has been deactivated. Contact an administrator for access.'),
             ]);
         }
 

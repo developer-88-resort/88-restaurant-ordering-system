@@ -8,7 +8,12 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="font-bold text-xl text-gray-900 leading-tight">{{ __('Order Management') }}</h2>
+                    <div class="flex items-center gap-2.5">
+                        <h2 class="font-bold text-xl text-gray-900 leading-tight">{{ __('Order Management') }}</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F3E1DC] text-[#8A3330]">
+                            {{ trans_choice(':count order|:count orders', $totalOrders, ['count' => $totalOrders]) }}
+                        </span>
+                    </div>
                     <p class="text-sm text-gray-500 mt-0.5">{{ __('Monitor and manage all customer orders') }}</p>
                 </div>
             </div>
@@ -34,23 +39,6 @@
         };
     @endphp
 
-    <div class="bg-white border border-[#E5DDD0] rounded-2xl shadow-sm p-4 mb-6">
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('orders.index') }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition {{ is_null($activeStatus) ? 'bg-[#8A3330] text-white' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE]' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">{!! $filterIcon(null) !!}</svg>
-                {{ __('All') }}
-            </a>
-            @foreach (\App\Enums\OrderStatus::cases() as $status)
-                <a href="{{ route('orders.index', ['status' => $status->value]) }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition {{ $activeStatus === $status->value ? 'bg-[#8A3330] text-white' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE]' }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">{!! $filterIcon($status->value) !!}</svg>
-                    {{ $status->label() }}
-                </a>
-            @endforeach
-        </div>
-    </div>
-
     @if ($orders->isEmpty())
         <x-empty-state
             :title="__('No orders yet')"
@@ -59,8 +47,53 @@
             :actionHref="route('orders.create')"
         />
     @else
+        <div x-data="{
+            selectedStatus: 'all',
+            statusCounts: {{ Js::from($statusCounts) }},
+            isVisible(status) {
+                return this.selectedStatus === 'all' || this.selectedStatus === status;
+            },
+            get hasVisibleOrders() {
+                return this.selectedStatus === 'all' || !!this.statusCounts[this.selectedStatus];
+            },
+        }">
+            <div class="bg-white border border-[#E5DDD0] rounded-2xl shadow-sm p-4 mb-6">
+                <div class="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 sm:flex-wrap sm:overflow-visible">
+                    <button type="button" @click="selectedStatus = 'all'"
+                            :class="selectedStatus === 'all' ? 'bg-[#8A3330] text-white shadow-sm shadow-[#8A3330]/20' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE] hover:border-[#8A3330]/30'"
+                            class="inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-150">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">{!! $filterIcon(null) !!}</svg>
+                        {{ __('All') }}
+                        <span :class="selectedStatus === 'all' ? 'bg-white/25 text-white' : 'bg-[#F3E1DC] text-[#8A3330]'"
+                              class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-bold">
+                            {{ $totalOrders }}
+                        </span>
+                    </button>
+                    @foreach (\App\Enums\OrderStatus::cases() as $status)
+                        <button type="button" @click="selectedStatus = '{{ $status->value }}'"
+                                :class="selectedStatus === '{{ $status->value }}' ? 'bg-[#8A3330] text-white shadow-sm shadow-[#8A3330]/20' : 'bg-white border border-[#E5DDD0] text-gray-600 hover:bg-[#FAF6EE] hover:border-[#8A3330]/30'"
+                                class="inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-150">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">{!! $filterIcon($status->value) !!}</svg>
+                            {{ $status->label() }}
+                            <span :class="selectedStatus === '{{ $status->value }}' ? 'bg-white/25 text-white' : 'bg-[#F3E1DC] text-[#8A3330]'"
+                                  class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-bold">
+                                {{ $statusCounts[$status->value] ?? 0 }}
+                            </span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- No orders in the selected status --}}
+            <div x-show="!hasVisibleOrders" x-cloak>
+                <x-empty-state
+                    :title="__('No orders found')"
+                    :description="__('Pick another status to see orders.')"
+                />
+            </div>
+
         {{-- Desktop table --}}
-        <div class="hidden sm:block bg-white border border-[#E5DDD0] rounded-2xl shadow-sm overflow-hidden">
+        <div x-show="hasVisibleOrders" x-cloak class="hidden sm:block bg-white border border-[#E5DDD0] rounded-2xl shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-[#E5DDD0]">
                     <thead class="bg-[#FAF6EE]">
@@ -76,7 +109,7 @@
                     </thead>
                     <tbody class="divide-y divide-[#E5DDD0]">
                         @foreach ($orders as $order)
-                            <tr class="hover:bg-[#FAF6EE]">
+                            <tr x-show="isVisible('{{ $order->status->value }}')" x-cloak class="hover:bg-[#FAF6EE]">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
                                         <div class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center {{ $order->status->badgeClasses() }}">
@@ -86,7 +119,7 @@
                                         </div>
                                         <div>
                                             <p class="text-sm font-bold text-gray-900 font-mono">{{ $order->orderNumber() }}</p>
-                                            <p class="text-xs text-gray-400">{{ __('Order ID') }}</p>
+                                            <p class="text-xs text-gray-400">{{ $order->customer_name ?? __('Order ID') }}</p>
                                         </div>
                                     </div>
                                 </td>
@@ -96,7 +129,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v4H4V6z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M7 10v8M17 10v8" />
                                         </svg>
-                                        {{ $order->table->table_number }}
+                                        {{ $order->locationLabel() }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -110,7 +143,7 @@
                                         {{ $order->payment_status->label() }}
                                     </span>
                                     @if ($order->payment_method)
-                                        <span class="ml-1 text-xs text-gray-400 uppercase">{{ $order->payment_method }}</span>
+                                        <span class="ml-1 text-xs text-gray-400 uppercase">{{ $order->payment_method->label() }}</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#8A3330]">₱{{ number_format($order->total_amount, 2) }}</td>
@@ -141,11 +174,14 @@
         </div>
 
         {{-- Mobile cards --}}
-        <div class="sm:hidden space-y-3">
+        <div x-show="hasVisibleOrders" x-cloak class="sm:hidden space-y-3">
             @foreach ($orders as $order)
-                <a href="{{ route('orders.show', $order) }}" class="block bg-white border border-[#E5DDD0] rounded-2xl shadow-sm p-4">
+                <a href="{{ route('orders.show', $order) }}" x-show="isVisible('{{ $order->status->value }}')" x-cloak class="block bg-white border border-[#E5DDD0] rounded-2xl shadow-sm p-4">
                     <div class="flex items-center justify-between gap-3">
-                        <p class="font-semibold text-gray-900 font-mono">{{ $order->orderNumber() }} <span class="font-sans font-normal text-gray-500">&middot; {{ $order->table->table_number }}</span></p>
+                        <p class="font-semibold text-gray-900 font-mono">{{ $order->orderNumber() }} <span class="font-sans font-normal text-gray-500">&middot; {{ $order->locationLabel() }}</span></p>
+                        @if ($order->customer_name)
+                            <p class="text-xs text-[#8A3330] font-medium">{{ __('Ordered by') }}: {{ $order->customer_name }}</p>
+                        @endif
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full shrink-0 {{ $order->status->badgeClasses() }}">
                             <span class="h-1.5 w-1.5 rounded-full {{ $order->status->dotClasses() }}"></span>
                             {{ $order->status->label() }}
@@ -157,7 +193,7 @@
                                 {{ $order->payment_status->label() }}
                             </span>
                             @if ($order->payment_method)
-                                <span class="ml-1 text-xs text-gray-400 uppercase">{{ $order->payment_method }}</span>
+                                <span class="ml-1 text-xs text-gray-400 uppercase">{{ $order->payment_method->label() }}</span>
                             @endif
                         </span>
                         <span class="font-semibold text-[#8A3330]">₱{{ number_format($order->total_amount, 2) }}</span>
@@ -166,9 +202,6 @@
                 </a>
             @endforeach
         </div>
-
-        <div class="mt-4">
-            {{ $orders->links() }}
         </div>
     @endif
 </x-app-layout>

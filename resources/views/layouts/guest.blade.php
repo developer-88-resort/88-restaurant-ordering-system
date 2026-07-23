@@ -21,6 +21,10 @@
     <body class="font-sans text-gray-900 antialiased">
         <x-toast />
 
+        <div class="fixed top-4 right-4 z-50">
+            <x-language-switcher />
+        </div>
+
         <div class="min-h-screen flex items-center justify-center bg-[#F7F0E3] px-6">
             {{ $slot }}
         </div>

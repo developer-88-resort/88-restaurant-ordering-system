@@ -23,7 +23,7 @@
             </h1>
 
             <p class="text-[#6F6258] text-lg mt-1 font-normal">
-                Set New Password
+                {{ __('Set New Password') }}
             </p>
         </div>
 
@@ -36,7 +36,7 @@
                 id="email"
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder="{{ __('Email') }}"
                 value="{{ old('email', $request->email) }}"
                 required
                 autofocus
@@ -48,7 +48,7 @@
                 id="password"
                 type="password"
                 name="password"
-                placeholder="New Password"
+                placeholder="{{ __('New Password') }}"
                 required
                 autocomplete="new-password"
                 class="w-full mb-4 rounded-xl border border-[#D9CCBA] bg-white px-4 py-3 text-sm text-[#333] placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]"
@@ -58,7 +58,7 @@
                 id="password_confirmation"
                 type="password"
                 name="password_confirmation"
-                placeholder="Confirm New Password"
+                placeholder="{{ __('Confirm New Password') }}"
                 required
                 autocomplete="new-password"
                 class="w-full mb-4 rounded-xl border border-[#D9CCBA] bg-white px-4 py-3 text-sm text-[#333] placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]"

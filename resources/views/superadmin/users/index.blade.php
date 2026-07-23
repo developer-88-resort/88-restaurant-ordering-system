@@ -5,7 +5,7 @@
                 {{ __('Manage Users') }}
             </h2>
             <a href="{{ route('superadmin.users.create') }}">
-                <x-primary-button>{{ __('New Account') }}</x-primary-button>
+                <x-primary-button>{{ __('Invite User') }}</x-primary-button>
             </a>
         </div>
     </x-slot>
@@ -13,8 +13,8 @@
     @if ($users->isEmpty())
         <x-empty-state
             :title="__('No user accounts yet')"
-            :description="__('Create Superadmin, Admin, and Staff accounts to give them access to this portal.')"
-            :actionLabel="__('New Account')"
+            :description="__('Invite Superadmin, Admin, and Staff accounts to give them access to this portal.')"
+            :actionLabel="__('Invite User')"
             :actionHref="route('superadmin.users.create')"
         />
     @else
@@ -36,10 +36,15 @@
                         @foreach ($users as $user)
                             <tr class="hover:bg-[#FAF6EE]">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ $user->name }}
-                                    @if ($user->id === auth()->id())
-                                        <span class="text-xs text-gray-400">({{ __('You') }})</span>
-                                    @endif
+                                    <div class="flex items-center gap-3">
+                                        <x-avatar :user="$user" class="h-9 w-9 text-xs" />
+                                        <span>
+                                            {{ $user->name }}
+                                            @if ($user->id === auth()->id())
+                                                <span class="text-xs text-gray-400">({{ __('You') }})</span>
+                                            @endif
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $user->email }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -48,7 +53,11 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @if ($user->is_active)
+                                    @if ($user->isPendingActivation())
+                                        <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full {{ $user->invitationStatus()->badgeClasses() }}">
+                                            {{ $user->invitationStatus()->label() }}
+                                        </span>
+                                    @elseif ($user->is_active)
                                         <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-green-100 text-green-800">{{ __('Active') }}</span>
                                     @else
                                         <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-gray-100 text-gray-800">{{ __('Inactive') }}</span>
@@ -70,19 +79,20 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-3">
                                     @if ($user->id === auth()->id())
                                         <span class="text-gray-300">{{ __('Edit') }}</span>
-                                        <span class="text-gray-300">{{ __('Delete') }}</span>
                                     @else
+                                        @if ($user->isPendingActivation())
+                                            <form action="{{ route('superadmin.users.resend-invitation', $user) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Resend Invitation') }}</button>
+                                            </form>
+                                        @endif
                                         <a href="{{ route('superadmin.users.edit', $user) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                                        <x-confirm-form
-                                            :action="route('superadmin.users.destroy', $user)"
-                                            method="DELETE"
-                                            class="inline"
-                                            :title="__('Delete this account?')"
-                                            :message="__('This will permanently remove :name\'s account and access.', ['name' => $user->name])"
-                                            :confirm-label="__('Delete')"
-                                        >
-                                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                                        </x-confirm-form>
+                                        @unless ($user->is_active)
+                                            <form action="{{ route('superadmin.users.reactivate', $user) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-green-700 hover:text-green-900">{{ __('Reactivate') }}</button>
+                                            </form>
+                                        @endunless
                                     @endif
                                 </td>
                             </tr>
@@ -113,7 +123,11 @@
                         <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-[#F3E1DC] text-[#8A3330]">
                             {{ $user->role->label() }}
                         </span>
-                        @if ($user->is_active)
+                        @if ($user->isPendingActivation())
+                            <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full {{ $user->invitationStatus()->badgeClasses() }}">
+                                {{ $user->invitationStatus()->label() }}
+                            </span>
+                        @elseif ($user->is_active)
                             <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-green-100 text-green-800">{{ __('Active') }}</span>
                         @else
                             <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold leading-5 rounded-full bg-gray-100 text-gray-800">{{ __('Inactive') }}</span>
@@ -133,16 +147,19 @@
 
                     @unless ($user->id === auth()->id())
                         <div class="mt-3 pt-3 border-t border-[#E5DDD0] flex items-center justify-end gap-4 text-sm">
+                            @if ($user->isPendingActivation())
+                                <form action="{{ route('superadmin.users.resend-invitation', $user) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Resend Invitation') }}</button>
+                                </form>
+                            @endif
                             <a href="{{ route('superadmin.users.edit', $user) }}" class="text-[#8A3330] hover:text-[#5f2120]">{{ __('Edit') }}</a>
-                            <x-confirm-form
-                                :action="route('superadmin.users.destroy', $user)"
-                                method="DELETE"
-                                :title="__('Delete this account?')"
-                                :message="__('This will permanently remove :name\'s account and access.', ['name' => $user->name])"
-                                :confirm-label="__('Delete')"
-                            >
-                                <button type="submit" class="text-red-600 hover:text-red-900">{{ __('Delete') }}</button>
-                            </x-confirm-form>
+                            @unless ($user->is_active)
+                                <form action="{{ route('superadmin.users.reactivate', $user) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="text-green-700 hover:text-green-900">{{ __('Reactivate') }}</button>
+                                </form>
+                            @endunless
                         </div>
                     @endunless
                 </div>

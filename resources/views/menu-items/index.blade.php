@@ -1,29 +1,34 @@
 <x-app-layout>
+    @php
+        $canManageMenu = in_array(Auth::user()->role, [\App\Enums\UserRole::Superadmin, \App\Enums\UserRole::Admin], true);
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Menu Management') }}</h2>
                 <p class="text-sm text-gray-500 mt-1">{{ __('Manage your menu items and categories.') }}</p>
             </div>
-            <div class="flex flex-wrap items-center gap-4">
-                <a href="{{ route('menu-categories.index') }}" class="text-sm text-[#8A3330] hover:underline font-medium">
-                    {{ __('Manage Categories') }}
-                </a>
-                @if ($categories->isEmpty())
-                    <span class="inline-flex items-center px-4 py-2 bg-gray-300 rounded-md font-semibold text-xs text-white uppercase tracking-widest cursor-not-allowed">
-                        {{ __('New Item') }}
-                    </span>
-                @else
-                    <a href="{{ route('menu-items.create') }}">
-                        <x-primary-button>{{ __('New Item') }}</x-primary-button>
+            @if ($canManageMenu)
+                <div class="flex flex-wrap items-center gap-4">
+                    <a href="{{ route('menu-categories.index') }}" class="text-sm text-[#8A3330] hover:underline font-medium">
+                        {{ __('Manage Categories') }}
                     </a>
-                @endif
-            </div>
+                    @if (! $hasCategories)
+                        <span class="inline-flex items-center px-4 py-2 bg-gray-300 rounded-md font-semibold text-xs text-white uppercase tracking-widest cursor-not-allowed">
+                            {{ __('New Item') }}
+                        </span>
+                    @else
+                        <a href="{{ route('menu-items.create') }}">
+                            <x-primary-button>{{ __('New Item') }}</x-primary-button>
+                        </a>
+                    @endif
+                </div>
+            @endif
         </div>
     </x-slot>
 
-
-    @if ($categories->isEmpty())
+    @if (! $hasCategories)
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center rounded-xl border border-[#E5DDD0] bg-white p-5">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5 text-amber-600">
@@ -34,65 +39,110 @@
                 <p class="font-semibold text-gray-900">{{ __('No categories yet') }}</p>
                 <p class="mt-0.5 text-sm text-gray-500">{{ __('You need at least one category before you can add menu items.') }}</p>
             </div>
-            <a href="{{ route('menu-categories.create') }}" class="shrink-0">
-                <x-primary-button>{{ __('New Category') }}</x-primary-button>
-            </a>
+            @if ($canManageMenu)
+                <a href="{{ route('menu-categories.create') }}" class="shrink-0">
+                    <x-primary-button>{{ __('New Category') }}</x-primary-button>
+                </a>
+            @endif
         </div>
     @endif
 
-    {{-- Search --}}
-    <form method="GET" action="{{ route('menu-items.index') }}" class="mb-4">
-        @if ($activeCategoryId)
-            <input type="hidden" name="category" value="{{ $activeCategoryId }}">
+    {{-- Filter toolbar --}}
+    <form method="GET" action="{{ route('menu-items.index') }}" class="mb-6 space-y-3">
+        @if ($showArchived)
+            <input type="hidden" name="archived" value="1">
         @endif
-        <div class="relative">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#a99c8f" class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <input
-                type="search"
-                name="search"
-                value="{{ $search }}"
-                placeholder="{{ __('Search menu...') }}"
-                class="w-full rounded-xl border border-[#D9CCBA] bg-white pl-11 pr-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]"
-            >
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#a99c8f" class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
+                       placeholder="{{ __('Search menu...') }}" autocomplete="off"
+                       class="w-full rounded-xl border border-[#D9CCBA] bg-white pl-11 pr-4 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-[#8A3330] focus:ring-2 focus:ring-[#8A3330]">
+            </div>
+
+            <select name="category_id" onchange="this.form.submit()"
+                    class="rounded-xl border-[#D9CCBA] text-sm text-gray-700 focus:border-[#8A3330] focus:ring-[#8A3330]">
+                <option value="">{{ __('All Categories') }}</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? null) == $category->id)>{{ $category->name }}</option>
+                @endforeach
+            </select>
+
+            <select name="availability" onchange="this.form.submit()"
+                    class="rounded-xl border-[#D9CCBA] text-sm text-gray-700 focus:border-[#8A3330] focus:ring-[#8A3330]">
+                <option value="">{{ __('Any Availability') }}</option>
+                @foreach ($availabilityOptions as $option)
+                    <option value="{{ $option->value }}" @selected(($filters['availability'] ?? null) === $option->value)>{{ $option->label() }}</option>
+                @endforeach
+            </select>
+
+            <select name="sort" onchange="this.form.submit()"
+                    class="rounded-xl border-[#D9CCBA] text-sm text-gray-700 focus:border-[#8A3330] focus:ring-[#8A3330]">
+                <option value="">{{ __('Sort Order') }}</option>
+                <option value="name_asc" @selected(($filters['sort'] ?? null) === 'name_asc')>{{ __('Name (A-Z)') }}</option>
+                <option value="price_asc" @selected(($filters['sort'] ?? null) === 'price_asc')>{{ __('Price (Low to High)') }}</option>
+                <option value="price_desc" @selected(($filters['sort'] ?? null) === 'price_desc')>{{ __('Price (High to Low)') }}</option>
+                <option value="prep_asc" @selected(($filters['sort'] ?? null) === 'prep_asc')>{{ __('Prep Time (Fast First)') }}</option>
+                <option value="newest" @selected(($filters['sort'] ?? null) === 'newest')>{{ __('Newest First') }}</option>
+            </select>
+
+            <button type="submit" class="hidden sm:inline-flex items-center px-4 py-2 rounded-xl bg-[#8A3330] text-white text-sm font-semibold hover:bg-[#742927] transition">
+                {{ __('Search') }}
+            </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+            <label class="inline-flex items-center gap-1.5 text-gray-600 cursor-pointer">
+                <input type="checkbox" name="featured" value="1" onchange="this.form.submit()" @checked($filters['featured'] ?? false)
+                       class="rounded border-gray-300 text-[#8A3330] focus:ring-[#8A3330]">
+                {{ __('Featured only') }}
+            </label>
+
+            @if (($filters['q'] ?? '') !== '' || ($filters['category_id'] ?? '') !== '' || ($filters['availability'] ?? '') !== '' || ($filters['sort'] ?? '') !== '' || ($filters['featured'] ?? false))
+                <a href="{{ route('menu-items.index', $showArchived ? ['archived' => 1] : []) }}" class="text-[#8A3330] hover:underline font-medium">
+                    {{ __('Clear filters') }}
+                </a>
+            @endif
+
+            <span class="ml-auto inline-flex rounded-full border border-[#E5DDD0] bg-white p-0.5">
+                <a href="{{ route('menu-items.index') }}"
+                   class="px-3 py-1 rounded-full text-xs font-semibold transition {{ ! $showArchived ? 'bg-[#8A3330] text-white' : 'text-gray-500 hover:text-gray-700' }}">
+                    {{ __('Active') }}
+                </a>
+                <a href="{{ route('menu-items.index', ['archived' => 1]) }}"
+                   class="px-3 py-1 rounded-full text-xs font-semibold transition {{ $showArchived ? 'bg-[#8A3330] text-white' : 'text-gray-500 hover:text-gray-700' }}">
+                    {{ __('Archived') }} ({{ $archivedCount }})
+                </a>
+            </span>
         </div>
     </form>
 
-    {{-- Category pills --}}
-    @if ($categories->isNotEmpty())
-        <div class="flex flex-wrap gap-2 mb-6">
-            <a href="{{ route('menu-items.index', array_filter(['search' => $search])) }}"
-               class="px-4 py-1.5 rounded-full text-sm font-medium transition {{ is_null($activeCategoryId) ? 'bg-[#8A3330] text-white' : 'bg-[#F3E1DC] text-gray-700 hover:bg-[#e9d3cb]' }}">
-                {{ __('All') }}
-            </a>
-            @foreach ($categories as $category)
-                <a href="{{ route('menu-items.index', array_filter(['category' => $category->id, 'search' => $search])) }}"
-                   class="px-4 py-1.5 rounded-full text-sm font-medium transition {{ $activeCategoryId === $category->id ? 'bg-[#8A3330] text-white' : 'bg-[#F3E1DC] text-gray-700 hover:bg-[#e9d3cb]' }} {{ $category->is_active ? '' : 'opacity-50' }}">
-                    {{ $category->name }}
-                    @unless ($category->is_active)
-                        <span class="text-[10px]">({{ __('inactive') }})</span>
-                    @endunless
-                </a>
-            @endforeach
-        </div>
-    @endif
-
-    {{-- Item grid --}}
     @if ($items->isEmpty())
         <x-empty-state
-            :title="__('No menu items found')"
-            :description="__('Try adjusting your search or filters, or add your first menu item.')"
-            :actionLabel="$categories->isEmpty() ? null : __('New Item')"
-            :actionHref="$categories->isEmpty() ? null : route('menu-items.create')"
+            :title="$showArchived ? __('No archived items') : __('No menu items found')"
+            :description="$showArchived ? __('Items you archive will show up here.') : __('Try adjusting your search or filters, or add your first menu item.')"
+            :actionLabel="($showArchived || ! $hasCategories || ! $canManageMenu) ? null : __('New Item')"
+            :actionHref="($showArchived || ! $hasCategories || ! $canManageMenu) ? null : route('menu-items.create')"
         />
     @else
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+             x-data="{
+                 statuses: @js($items->getCollection()->mapWithKeys(fn ($i) => [$i->id => $i->availability_status->value])),
+             }"
+             x-init="
+                 Echo.channel('menu').listen('.MenuItemAvailabilityChanged', (e) => {
+                     if (e.menu_item_id in statuses) statuses[e.menu_item_id] = e.availability_status;
+                 });
+             "
+        >
             @foreach ($items as $item)
                 <div class="group bg-white border border-[#E5DDD0] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#D9CCBA] transition-all duration-200">
                     <div class="aspect-square bg-gradient-to-br from-[#FAF6EE] to-[#F1E9DA] relative overflow-hidden">
-                        @if ($item->image_path)
-                            <img src="{{ asset('storage/'.$item->image_path) }}" alt="{{ $item->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        @if ($item->primaryImageUrl())
+                            <img src="{{ $item->primaryImageUrl() }}" alt="{{ $item->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         @else
                             <div class="absolute inset-0 flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" class="h-6 w-6 text-[#D9CCBA]">
@@ -101,52 +151,162 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('menu-items.toggle-availability', $item) }}" method="POST" class="absolute top-1.5 right-1.5">
-                            @csrf
-                            @method('PATCH')
-                            @if ($item->is_available)
-                                <button type="submit" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold leading-4 rounded-full bg-white/90 backdrop-blur text-green-700 shadow-sm hover:bg-green-50">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>{{ __('Available') }}
-                                </button>
-                            @else
-                                <button type="submit" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold leading-4 rounded-full bg-white/90 backdrop-blur text-gray-500 shadow-sm hover:bg-gray-100">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>{{ __('Out of Stock') }}
-                                </button>
+                        <div class="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+                            @if ($item->is_featured)
+                                <span class="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded-full bg-amber-500 text-white shadow-sm">{{ __('Featured') }}</span>
                             @endif
-                        </form>
+                            @if ($item->is_best_seller)
+                                <span class="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded-full bg-[#8A3330] text-white shadow-sm">{{ __('Best Seller') }}</span>
+                            @endif
+                        </div>
+
+                        @if ($showArchived)
+                            <span class="absolute top-1.5 right-1.5 inline-flex items-center px-2 py-1 text-[10px] font-semibold rounded-full bg-slate-700 text-white shadow-sm">
+                                {{ __('Archived') }}
+                            </span>
+                        @elseif ($canManageMenu)
+                            <div class="absolute top-1.5 right-1.5"
+                                 x-data="{
+                                     open: false,
+                                     menuStyle: '',
+                                     toggle(event) {
+                                         if (this.open) { this.open = false; return; }
+                                         const rect = event.currentTarget.getBoundingClientRect();
+                                         this.menuStyle = `top:${rect.bottom + 6}px; left:${rect.right - 168}px;`;
+                                         this.open = true;
+                                     },
+                                     select(value) {
+                                         const previous = statuses[{{ $item->id }}];
+                                         statuses[{{ $item->id }}] = value;
+                                         this.open = false;
+                                         fetch('{{ route('menu-items.set-availability', $item) }}', {
+                                             method: 'PATCH',
+                                             headers: {
+                                                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                                 'Accept': 'application/json',
+                                                 'Content-Type': 'application/json',
+                                             },
+                                             body: JSON.stringify({ status: value }),
+                                         }).catch(() => statuses[{{ $item->id }}] = previous);
+                                     },
+                                 }"
+                            >
+                                <button
+                                    type="button"
+                                    @click="toggle($event)"
+                                    :class="{
+                                        'bg-green-100 text-green-800': statuses[{{ $item->id }}] === 'available',
+                                        'bg-gray-200 text-gray-700': statuses[{{ $item->id }}] === 'out_of_stock',
+                                        'bg-amber-100 text-amber-800': statuses[{{ $item->id }}] === 'seasonal',
+                                        'bg-slate-700 text-white': statuses[{{ $item->id }}] === 'hidden',
+                                    }"
+                                    class="inline-flex items-center gap-1 text-[10px] font-semibold rounded-full py-1 pl-2 pr-1.5 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A3330]"
+                                >
+                                    <span x-text="{
+                                        available: '{{ __('Available') }}',
+                                        out_of_stock: '{{ __('Out of Stock') }}',
+                                        seasonal: '{{ __('Seasonal') }}',
+                                        hidden: '{{ __('Hidden') }}',
+                                    }[statuses[{{ $item->id }}]]"></span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-2.5 w-2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
+
+                                <template x-teleport="body">
+                                    <div
+                                        x-show="open" x-cloak
+                                        @click.outside="open = false"
+                                        x-on:keydown.escape.window="open = false"
+                                        :style="menuStyle"
+                                        x-transition:enter="transition ease-out duration-100"
+                                        x-transition:enter-start="opacity-0 scale-95"
+                                        x-transition:enter-end="opacity-100 scale-100"
+                                        class="fixed z-50 w-40 rounded-lg bg-white border border-[#E5DDD0] shadow-lg py-1"
+                                    >
+                                        @foreach ($availabilityOptions as $option)
+                                            <button
+                                                type="button"
+                                                @click="select('{{ $option->value }}')"
+                                                :class="statuses[{{ $item->id }}] === '{{ $option->value }}' ? 'font-semibold text-gray-900' : 'text-gray-600'"
+                                                class="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[#FAF6EE] text-left"
+                                            >
+                                                <span class="h-1.5 w-1.5 rounded-full shrink-0 {{ match($option->value) {
+                                                    'available' => 'bg-green-500',
+                                                    'out_of_stock' => 'bg-gray-400',
+                                                    'seasonal' => 'bg-amber-500',
+                                                    'hidden' => 'bg-slate-500',
+                                                    default => 'bg-gray-400',
+                                                } }}"></span>
+                                                {{ $option->label() }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </template>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="p-2.5 flex-1 flex flex-col">
                         <span class="text-[9px] font-semibold text-[#8A7B9E] uppercase tracking-wider">{{ $item->menuCategory->name }}</span>
                         <h3 class="mt-0.5 text-sm font-semibold text-gray-900 leading-snug truncate" title="{{ $item->name }}">{{ $item->name }}</h3>
+                        @if ($item->description)
+                            <p class="text-[10px] text-gray-500 truncate" title="{{ $item->description }}">{{ $item->description }}</p>
+                        @endif
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            @if ($item->prep_time_minutes)
+                                <span class="text-[10px] text-gray-400">{{ __(':minutes min prep', ['minutes' => $item->prep_time_minutes]) }}</span>
+                            @endif
+                            @if ($item->hasVariants())
+                                <span class="text-[10px] font-semibold text-[#8A7B9E]">{{ __(':count variants', ['count' => $item->variants->count()]) }}</span>
+                            @endif
+                        </div>
 
                         <div class="mt-auto pt-2 flex items-end justify-between">
-                            <span class="text-sm font-bold text-[#8A3330]">₱{{ number_format($item->price, 2) }}</span>
-                            <div class="flex items-center">
-                                <a href="{{ route('menu-items.edit', $item) }}" title="{{ __('Edit') }}"
-                                   class="p-1 rounded-md text-gray-400 hover:text-[#8A3330] hover:bg-[#8A3330]/5 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-3.5 w-3.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                                    </svg>
-                                </a>
-                                <x-confirm-form
-                                    :action="route('menu-items.destroy', $item)"
-                                    method="DELETE"
-                                    :title="__('Delete this item?')"
-                                    :message="__('This will permanently remove :name from the menu.', ['name' => $item->name])"
-                                    :confirm-label="__('Delete')"
-                                >
-                                    <button type="submit" title="{{ __('Delete') }}" class="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-3.5 w-3.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                        </svg>
-                                    </button>
-                                </x-confirm-form>
-                            </div>
+                            <span class="text-sm font-bold text-[#8A3330]">{{ $item->priceRangeLabel() }}</span>
+                            @if ($canManageMenu)
+                                <div class="flex items-center">
+                                    @if ($showArchived)
+                                        <form action="{{ route('menu-items.restore', $item) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" title="{{ __('Restore') }}" class="p-1 rounded-md text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-3.5 w-3.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <a href="{{ route('menu-items.edit', $item) }}" title="{{ __('Edit') }}"
+                                           class="p-1 rounded-md text-gray-400 hover:text-[#8A3330] hover:bg-[#8A3330]/5 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-3.5 w-3.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                                            </svg>
+                                        </a>
+                                        <x-confirm-form
+                                            :action="route('menu-items.destroy', $item)"
+                                            method="DELETE"
+                                            :title="__('Archive this item?')"
+                                            :message="__('You can restore :name later from the Archived tab.', ['name' => $item->name])"
+                                            :confirm-label="__('Archive')"
+                                        >
+                                            <button type="submit" title="{{ __('Archive') }}" class="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-3.5 w-3.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25-2.25m-2.25 2.25V6.75M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                                </svg>
+                                            </button>
+                                        </x-confirm-form>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
             @endforeach
+        </div>
+
+        <div class="mt-6">
+            {{ $items->links() }}
         </div>
     @endif
 </x-app-layout>

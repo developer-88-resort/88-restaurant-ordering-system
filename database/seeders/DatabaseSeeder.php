@@ -24,5 +24,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
             'email_verified_at' => now(),
         ]);
+
+        $this->call(SpaceStructureSeeder::class);
     }
 }

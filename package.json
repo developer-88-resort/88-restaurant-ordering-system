@@ -19,7 +19,11 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@hotwired/turbo": "^8.0.23",
+        "interactjs": "^1.10.27",
+        "konva": "^10.3.0",
         "laravel-echo": "^2.3.7",
-        "pusher-js": "^8.5.0"
+        "pusher-js": "^8.5.0",
+        "sweetalert2": "^11.26.25"
     }
 }

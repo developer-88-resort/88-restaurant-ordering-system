@@ -3,13 +3,53 @@
         <div
             class="flex items-center justify-between"
             x-data
-            x-init="Echo.private('audit-logs').listen('.AuditLogCreated', () => window.location.reload())"
+            x-init="
+                Echo.private('audit-logs').listen('.AuditLogCreated', () => window.location.reload());
+                turboCleanup(() => Echo.leave('audit-logs'));
+            "
         >
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Audit Logs') }}
             </h2>
         </div>
     </x-slot>
+
+    @php
+        $authEvents = ['login', 'logout', 'failed_login'];
+
+        $subjectLabel = fn (?string $subjectType) => match ($subjectType ? class_basename($subjectType) : null) {
+            'MenuCategory' => __('Menu Category'),
+            'MenuItem' => __('Menu Item'),
+            'SpaceCategory' => __('Space Category'),
+            'Setting' => __('Settings'),
+            null => null,
+            default => class_basename($subjectType),
+        };
+
+        $actionLabel = function ($log) use ($authEvents, $subjectLabel) {
+            if (in_array($log->event, $authEvents, true)) {
+                return __(ucwords(str_replace('_', ' ', $log->event)));
+            }
+
+            $subject = $subjectLabel($log->subject_type);
+
+            if (! $subject) {
+                return match ($log->event) {
+                    'created' => __('Record Created'),
+                    'updated' => __('Updated'),
+                    'deleted' => __('Deleted'),
+                    default => ucfirst($log->event ?? ''),
+                };
+            }
+
+            return match ($log->event) {
+                'created' => __(':subject Created', ['subject' => $subject]),
+                'updated' => __(':subject Updated', ['subject' => $subject]),
+                'deleted' => __(':subject Deleted', ['subject' => $subject]),
+                default => "{$subject} ".ucfirst($log->event ?? ''),
+            };
+        };
+    @endphp
 
     @if ($logs->isEmpty())
         <x-empty-state
@@ -33,18 +73,18 @@
                         @foreach ($logs as $log)
                             <tr class="hover:bg-[#FAF6EE]">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $log->created_at->format('M d, Y g:i A') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $log->user->name ?? __('System') }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $log->causer->name ?? __('System') }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span @class([
                                         'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide',
-                                        'bg-green-100 text-green-800' => $log->action === 'created',
-                                        'bg-blue-100 text-blue-800' => $log->action === 'updated',
-                                        'bg-red-100 text-red-800' => $log->action === 'deleted',
-                                        'bg-teal-100 text-teal-800' => $log->action === 'login',
-                                        'bg-gray-100 text-gray-600' => $log->action === 'logout',
-                                        'bg-amber-100 text-amber-800' => $log->action === 'failed_login',
+                                        'bg-green-100 text-green-800' => $log->event === 'created',
+                                        'bg-blue-100 text-blue-800' => $log->event === 'updated',
+                                        'bg-red-100 text-red-800' => $log->event === 'deleted',
+                                        'bg-teal-100 text-teal-800' => $log->event === 'login',
+                                        'bg-gray-100 text-gray-600' => $log->event === 'logout',
+                                        'bg-amber-100 text-amber-800' => $log->event === 'failed_login',
                                     ])>
-                                        {{ ucwords(str_replace('_', ' ', $log->action)) }}
+                                        {{ $actionLabel($log) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ $log->description }}</td>
@@ -63,17 +103,17 @@
                         <p class="text-xs text-gray-500">{{ $log->created_at->format('M d, Y g:i A') }}</p>
                         <span @class([
                             'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide shrink-0',
-                            'bg-green-100 text-green-800' => $log->action === 'created',
-                            'bg-blue-100 text-blue-800' => $log->action === 'updated',
-                            'bg-red-100 text-red-800' => $log->action === 'deleted',
-                            'bg-teal-100 text-teal-800' => $log->action === 'login',
-                            'bg-gray-100 text-gray-600' => $log->action === 'logout',
-                            'bg-amber-100 text-amber-800' => $log->action === 'failed_login',
+                            'bg-green-100 text-green-800' => $log->event === 'created',
+                            'bg-blue-100 text-blue-800' => $log->event === 'updated',
+                            'bg-red-100 text-red-800' => $log->event === 'deleted',
+                            'bg-teal-100 text-teal-800' => $log->event === 'login',
+                            'bg-gray-100 text-gray-600' => $log->event === 'logout',
+                            'bg-amber-100 text-amber-800' => $log->event === 'failed_login',
                         ])>
-                            {{ ucwords(str_replace('_', ' ', $log->action)) }}
+                            {{ $actionLabel($log) }}
                         </span>
                     </div>
-                    <p class="mt-2 text-sm font-medium text-gray-900">{{ $log->user->name ?? __('System') }}</p>
+                    <p class="mt-2 text-sm font-medium text-gray-900">{{ $log->causer->name ?? __('System') }}</p>
                     <p class="mt-1 text-sm text-gray-700">{{ $log->description }}</p>
                 </div>
             @endforeach
